@@ -1,0 +1,152 @@
+<!--
+  In-VR menu. Labels are filled in from src/i18n at runtime (ids end in -label or match a choice).
+  Units are UIKit units; the scene node scales the panel to ~0.9 m wide.
+  Chip ids: place-<id>, practice-<id>, len-<minutes>, amb-<id>. Selected state is set from code.
+-->
+<style>
+  .root {
+    flex-direction: column;
+    width: 1100px;
+    padding-top: 44px;
+    padding-bottom: 40px;
+    padding-left: 48px;
+    padding-right: 48px;
+    gap: 22px;
+  }
+
+  .title {
+    color: #fafaf7;
+    font-size: 56px;
+    font-weight: bold;
+  }
+
+  .tagline {
+    color: #c9ccd2;
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+
+  .label {
+    color: #9ea3ab;
+    font-size: 26px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-top: 6px;
+  }
+
+  .row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .chip {
+    color: #eceef1;
+    font-size: 30px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 26px;
+    padding-right: 26px;
+    border-radius: 36px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    background-color: #24272c;
+    cursor: pointer;
+  }
+
+  .chip:hover {
+    border-color: #f1d9a8;
+  }
+
+  .actions {
+    flex-direction: row;
+    gap: 16px;
+    margin-top: 18px;
+    align-items: center;
+  }
+
+  .primary {
+    color: #1a1712;
+    font-size: 36px;
+    font-weight: bold;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 56px;
+    padding-right: 56px;
+    border-radius: 44px;
+    background-color: #f1d9a8;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .ghost {
+    color: #c9ccd2;
+    font-size: 28px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-radius: 36px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #c9ccd2;
+  }
+
+  .spacer {
+    flex-grow: 1;
+  }
+</style>
+<Panel class="root">
+  <span id="title" class="title">Still Places</span>
+  <span id="tagline" class="tagline">Sit somewhere beautiful. Breathe.</span>
+
+  <span id="lbl-place" class="label">PLACE</span>
+  <div class="row">
+    <span id="place-dawn" class="chip">Mountain Dawn</span>
+    <span id="place-forest" class="chip">Forest Light</span>
+    <span id="place-lake" class="chip">Lakeside</span>
+    <span id="place-beach" class="chip">Sunrise Shore</span>
+    <span id="place-meadow" class="chip">Alpine Meadow</span>
+    <span id="place-night" class="chip">Starry Night</span>
+  </div>
+
+  <span id="lbl-practice" class="label">PRACTICE</span>
+  <div class="row">
+    <span id="practice-breath" class="chip">Breathing</span>
+    <span id="practice-bodyscan" class="chip">Body scan</span>
+    <span id="practice-open" class="chip">Open sitting</span>
+    <span id="practice-metta" class="chip">Loving-kindness</span>
+  </div>
+
+  <span id="lbl-length" class="label">LENGTH</span>
+  <div class="row">
+    <span id="len-3" class="chip">3 min</span>
+    <span id="len-5" class="chip">5 min</span>
+    <span id="len-10" class="chip">10 min</span>
+    <span id="len-20" class="chip">20 min</span>
+  </div>
+
+  <span id="lbl-sound" class="label">SOUND</span>
+  <div class="row">
+    <span id="amb-rain" class="chip">Rain</span>
+    <span id="amb-forest" class="chip">Forest</span>
+    <span id="amb-waves" class="chip">Waves</span>
+    <span id="amb-stream" class="chip">Stream</span>
+    <span id="amb-night" class="chip">Night</span>
+    <span id="amb-none" class="chip">Silence</span>
+  </div>
+
+  <div class="actions">
+    <span id="begin" class="primary">Begin</span>
+    <div class="spacer"></div>
+    <span id="lang" class="ghost">中文</span>
+    <span id="exit" class="ghost">Exit VR</span>
+  </div>
+</Panel>

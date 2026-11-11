@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="A quiet place to sit: guided meditation in immersive VR or on screen." />
+    <meta name="theme-color" content="#0d0f12" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f1d9a8'/%3E%3C/svg%3E" />
+    <title>Still Places</title>
+    <link rel="stylesheet" href="/src/ui/overlay.css" />
+  </head>
+  <body>
+    <div id="scene-container"></div>
+
+    <!-- 2D overlay. Built by src/ui/overlay.ts; hidden while in VR. -->
+    <div id="overlay" data-mode="menu" data-loading="true">
+      <header class="top">
+        <div class="brand">
+          <span class="dot" aria-hidden="true"></span>
+          <span data-t="app.title">Still Places</span>
+        </div>
+        <button id="lang" class="link" type="button" data-t="ui.language">中文</button>
+      </header>
+
+      <main id="menu" class="card" aria-labelledby="tagline">
+        <h1 id="tagline" data-t="app.tagline">Sit somewhere beautiful. Breathe.</h1>
+
+        <section>
+          <h2 data-t="ui.place">Place</h2>
+          <div id="places" class="places" role="radiogroup"></div>
+        </section>
+
+        <section>
+          <h2 data-t="ui.practice">Practice</h2>
+          <div id="practices" class="chips" role="radiogroup"></div>
+          <p id="practice-desc" class="desc"></p>
+        </section>
+
+        <section class="split">
+          <div>
+            <h2 data-t="ui.length">Length</h2>
+            <div id="lengths" class="chips" role="radiogroup"></div>
+          </div>
+          <div id="pattern-wrap">
+            <h2 data-t="ui.pattern">Breath pattern</h2>
+            <div id="patterns" class="chips" role="radiogroup"></div>
+          </div>
+          <div id="interval-wrap">
+            <h2 data-t="ui.interval">Interval bell</h2>
+            <div id="intervals" class="chips" role="radiogroup"></div>
+          </div>
+        </section>
+
+        <section>
+          <h2 data-t="ui.sound">Sound</h2>
+          <div id="ambients" class="chips" role="radiogroup"></div>
+          <div class="sliders">
+            <label><span data-t="ui.ambience">Ambience</span>
+              <input id="vol-ambient" type="range" min="0" max="1" step="0.05" />
+            </label>
+            <label><span data-t="ui.bells">Bells</span>
+              <input id="vol-bells" type="range" min="0" max="1" step="0.05" />
+            </label>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button id="begin-vr" class="primary" type="button" data-t="ui.beginVR" hidden>Begin in VR</button>
+          <button id="begin-2d" class="secondary" type="button" data-t="ui.begin2D">Begin on screen</button>
+        </div>
+        <p id="no-xr" class="note" data-t="ui.noXR" hidden></p>
+        <p id="stats" class="note"></p>
+      </main>
+
+      <!-- Running / paused (on screen) -->
+      <div id="session-bar" class="session-bar">
+        <span id="time" class="time">5:00</span>
+        <button id="pause" class="link" type="button" data-t="ui.pause">Pause</button>
+      </div>
+      <p id="caption" class="caption" aria-live="polite"></p>
+
+      <div id="paused" class="card small" role="dialog" aria-labelledby="paused-title">
+        <h2 id="paused-title" class="big" data-t="ui.paused">Paused</h2>
+        <p id="paused-time" class="time"></p>
+        <div class="actions">
+          <button id="resume" class="primary" type="button" data-t="ui.resume">Resume</button>
+          <button id="end" class="secondary" type="button" data-t="ui.end">End session</button>
+        </div>
+      </div>
+
+      <div id="summary" class="card small" role="dialog" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="big" data-t="ui.complete">Session complete</h2>
+        <p id="summary-line"></p>
+        <p id="summary-stats" class="note"></p>
+        <div class="actions">
+          <button id="again" class="primary" type="button" data-t="ui.again">Sit again</button>
+          <button id="to-menu" class="secondary" type="button" data-t="ui.menu">Menu</button>
+        </div>
+      </div>
+
+      <footer class="foot">
+        <span data-t="ui.disclaimer"></span>
+        <a href="./about.html" data-t="ui.credits">Credits</a>
+      </footer>
+
+      <div id="loading" class="loading" data-t="ui.loading">Loading place…</div>
+    </div>
+
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

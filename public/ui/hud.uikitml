@@ -1,0 +1,36 @@
+<!-- Small, low pause control shown while a session runs. -->
+<style>
+  .hud {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: #3a3d43;
+    background-color: #15171a;
+    cursor: pointer;
+  }
+
+  .hud:hover {
+    border-color: #c9ccd2;
+  }
+
+  .time {
+    color: #c9ccd2;
+    font-size: 26px;
+  }
+
+  .pause {
+    color: #eceef1;
+    font-size: 26px;
+    font-weight: bold;
+  }
+</style>
+<div id="hud" class="hud">
+  <span id="hud-pause" class="pause">Pause</span>
+  <span id="hud-time" class="time">5:00</span>
+</div>

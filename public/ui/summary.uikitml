@@ -1,0 +1,78 @@
+<!-- End-of-session summary. -->
+<style>
+  .root {
+    flex-direction: column;
+    align-items: center;
+    width: 720px;
+    padding-top: 44px;
+    padding-bottom: 40px;
+    padding-left: 44px;
+    padding-right: 44px;
+    gap: 18px;
+  }
+
+  .title {
+    color: #fafaf7;
+    font-size: 50px;
+    font-weight: bold;
+  }
+
+  .line {
+    color: #dfe1e5;
+    font-size: 32px;
+  }
+
+  .stats {
+    color: #9ea3ab;
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  .actions {
+    flex-direction: row;
+    gap: 18px;
+  }
+
+  .primary {
+    color: #1a1712;
+    font-size: 34px;
+    font-weight: bold;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 44px;
+    padding-right: 44px;
+    border-radius: 40px;
+    background-color: #f1d9a8;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .ghost {
+    color: #c9ccd2;
+    font-size: 30px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 32px;
+    padding-right: 32px;
+    border-radius: 40px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #c9ccd2;
+  }
+</style>
+<Panel class="root">
+  <span id="sum-title" class="title">Session complete</span>
+  <span id="sum-line" class="line">5 min of Breathing</span>
+  <span id="sum-stats" class="stats">1 sessions · 5 min total · 1-day streak</span>
+  <div class="actions">
+    <span id="again" class="primary">Sit again</span>
+    <span id="to-menu" class="ghost">Menu</span>
+  </div>
+</Panel>

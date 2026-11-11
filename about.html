@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Still Places · Credits</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f1d9a8'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d0f12;
+        --text: #f4f1ea;
+        --muted: #a9adb5;
+        --line: rgb(255 255 255 / 0.12);
+        --accent: #f1d9a8;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 16px 64px;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: 28px;
+        margin: 8px 0 4px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 36px 0 8px;
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      ul {
+        padding-left: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 6px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      td code {
+        font-size: 12px;
+        color: var(--muted);
+        word-break: break-all;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="./">← Still Places</a>
+      <h1>Credits &amp; further reading</h1>
+      <p>
+        Still Places is a free meditation space for VR headsets and the web. It is meant for relaxation and
+        mindfulness practice and is not a medical treatment.
+      </p>
+
+      <h2>Places, sounds and fonts</h2>
+      <p>
+        Every panorama comes from <a href="https://polyhaven.com/hdris">Poly Haven</a> (CC0). Bells and ambience
+        are synthesized in the browser unless a recording is listed below. The guidance text is original to this
+        project.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Asset</th><th>Author</th><th>Licence</th></tr>
+          </thead>
+          <tbody id="credits">
+            <tr><td colspan="3">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Learn more</h2>
+      <p>These organisations offer free guided meditations. Their recordings are not included in this app.</p>
+      <ul>
+        <li><a href="https://www.uclahealth.org/uclamindful/guided-meditations">UCLA Mindful</a> — short guided meditations in many languages.</li>
+        <li><a href="https://palousemindfulness.com/">Palouse Mindfulness</a> — a free, complete 8-week MBSR course.</li>
+        <li><a href="https://www.freemindfulness.org/download">Free Mindfulness Project</a> — guided exercises and bell timers.</li>
+        <li><a href="https://www.audiodharma.org/">Audio Dharma</a> and <a href="https://dharmaseed.org/">Dharma Seed</a> — talks and guided meditations.</li>
+        <li><a href="https://meditofoundation.org/medito-app">Medito</a> — a free, non-profit meditation app.</li>
+      </ul>
+    </main>
+    <script type="module">
+      const tbody = document.getElementById('credits');
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+      try {
+        const res = await fetch('./credits.json');
+        const items = await res.json();
+        // One row per source asset (several files can come from the same panorama).
+        const bySource = new Map();
+        for (const c of items) {
+          const k = c.source_url;
+          if (!bySource.has(k)) bySource.set(k, { ...c, files: [] });
+          bySource.get(k).files.push(c.file);
+        }
+        tbody.innerHTML = [...bySource.values()]
+          .map(
+            (c) => `<tr>
+              <td><a href="${esc(c.source_url)}">${esc(c.title)}</a><br><code>${c.files.map(esc).join(', ')}</code></td>
+              <td>${esc(c.author)}</td>
+              <td><a href="${esc(c.license_url)}">${esc(c.license)}</a></td>
+            </tr>`,
+          )
+          .join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="3">Could not load credits.json.</td></tr>';
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,236 @@
+[
+  {
+    "file": "fonts/ui-bold.ttf",
+    "title": "Noto Sans SC",
+    "author": "Google, Adobe (Noto project)",
+    "source_url": "https://github.com/google/fonts/tree/main/ofl/notosanssc",
+    "license": "OFL-1.1",
+    "license_url": "https://openfontlicense.org",
+    "changes": "Subset to the characters used by this app; instanced at a fixed weight"
+  },
+  {
+    "file": "fonts/ui-regular.ttf",
+    "title": "Noto Sans SC",
+    "author": "Google, Adobe (Noto project)",
+    "source_url": "https://github.com/google/fonts/tree/main/ofl/notosanssc",
+    "license": "OFL-1.1",
+    "license_url": "https://openfontlicense.org",
+    "changes": "Subset to the characters used by this app; instanced at a fixed weight"
+  },
+  {
+    "file": "hdri/beach_4k.jpg",
+    "title": "Umhlanga Sunrise",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/umhlanga_sunrise",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/beach_8k.jpg",
+    "title": "Umhlanga Sunrise",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/umhlanga_sunrise",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/beach_ibl.hdr",
+    "title": "Umhlanga Sunrise",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/umhlanga_sunrise",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/beach_thumb.jpg",
+    "title": "Umhlanga Sunrise",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/umhlanga_sunrise",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/dawn_4k.jpg",
+    "title": "Kiara 1 Dawn",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/kiara_1_dawn",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/dawn_8k.jpg",
+    "title": "Kiara 1 Dawn",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/kiara_1_dawn",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/dawn_ibl.hdr",
+    "title": "Kiara 1 Dawn",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/kiara_1_dawn",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/dawn_thumb.jpg",
+    "title": "Kiara 1 Dawn",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/kiara_1_dawn",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/forest_4k.jpg",
+    "title": "J&E Gray 02",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/je_gray_02",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/forest_8k.jpg",
+    "title": "J&E Gray 02",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/je_gray_02",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/forest_ibl.hdr",
+    "title": "J&E Gray 02",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/je_gray_02",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/forest_thumb.jpg",
+    "title": "J&E Gray 02",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/je_gray_02",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/lake_4k.jpg",
+    "title": "Resting Place",
+    "author": "Sergej Majboroda",
+    "source_url": "https://polyhaven.com/a/resting_place",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/lake_8k.jpg",
+    "title": "Resting Place",
+    "author": "Sergej Majboroda",
+    "source_url": "https://polyhaven.com/a/resting_place",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/lake_ibl.hdr",
+    "title": "Resting Place",
+    "author": "Sergej Majboroda",
+    "source_url": "https://polyhaven.com/a/resting_place",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/lake_thumb.jpg",
+    "title": "Resting Place",
+    "author": "Sergej Majboroda",
+    "source_url": "https://polyhaven.com/a/resting_place",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/meadow_4k.jpg",
+    "title": "Alps Field",
+    "author": "Andreas Mischok",
+    "source_url": "https://polyhaven.com/a/alps_field",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/meadow_8k.jpg",
+    "title": "Alps Field",
+    "author": "Andreas Mischok",
+    "source_url": "https://polyhaven.com/a/alps_field",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/meadow_ibl.hdr",
+    "title": "Alps Field",
+    "author": "Andreas Mischok",
+    "source_url": "https://polyhaven.com/a/alps_field",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/meadow_thumb.jpg",
+    "title": "Alps Field",
+    "author": "Andreas Mischok",
+    "source_url": "https://polyhaven.com/a/alps_field",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/night_4k.jpg",
+    "title": "Dikhololo Night",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/dikhololo_night",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/night_8k.jpg",
+    "title": "Dikhololo Night",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/dikhololo_night",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  },
+  {
+    "file": "hdri/night_ibl.hdr",
+    "title": "Dikhololo Night",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/dikhololo_night",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Downloaded at 1k resolution"
+  },
+  {
+    "file": "hdri/night_thumb.jpg",
+    "title": "Dikhololo Night",
+    "author": "Greg Zaal",
+    "source_url": "https://polyhaven.com/a/dikhololo_night",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized from Poly Haven tonemapped JPG"
+  }
+]

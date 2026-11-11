@@ -1,0 +1,71 @@
+<!-- Pause panel. -->
+<style>
+  .root {
+    flex-direction: column;
+    align-items: center;
+    width: 620px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    padding-left: 40px;
+    padding-right: 40px;
+    gap: 24px;
+  }
+
+  .title {
+    color: #fafaf7;
+    font-size: 48px;
+    font-weight: bold;
+  }
+
+  .time {
+    color: #c9ccd2;
+    font-size: 30px;
+  }
+
+  .actions {
+    flex-direction: row;
+    gap: 18px;
+  }
+
+  .primary {
+    color: #1a1712;
+    font-size: 34px;
+    font-weight: bold;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 44px;
+    padding-right: 44px;
+    border-radius: 40px;
+    background-color: #f1d9a8;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .ghost {
+    color: #c9ccd2;
+    font-size: 30px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 32px;
+    padding-right: 32px;
+    border-radius: 40px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #c9ccd2;
+  }
+</style>
+<Panel class="root">
+  <span id="pause-title" class="title">Paused</span>
+  <span id="pause-time" class="time">3:12</span>
+  <div class="actions">
+    <span id="resume" class="primary">Resume</span>
+    <span id="end" class="ghost">End session</span>
+  </div>
+</Panel>

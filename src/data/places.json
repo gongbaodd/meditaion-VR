@@ -1,0 +1,74 @@
+[
+  {
+    "id": "dawn",
+    "polyhaven": "kiara_1_dawn",
+    "name": {
+      "en": "Mountain Dawn",
+      "zh": "山谷黎明"
+    },
+    "ambient": "forest",
+    "focusU": 0.62,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.9
+  },
+  {
+    "id": "forest",
+    "polyhaven": "je_gray_02",
+    "name": {
+      "en": "Forest Light",
+      "zh": "林间光影"
+    },
+    "ambient": "forest",
+    "focusU": 0.59,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.9
+  },
+  {
+    "id": "lake",
+    "polyhaven": "resting_place",
+    "name": {
+      "en": "Lakeside",
+      "zh": "湖畔"
+    },
+    "ambient": "forest",
+    "focusU": 0.67,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.9
+  },
+  {
+    "id": "beach",
+    "polyhaven": "umhlanga_sunrise",
+    "name": {
+      "en": "Sunrise Shore",
+      "zh": "海岸日出"
+    },
+    "ambient": "waves",
+    "focusU": 0.59,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.9
+  },
+  {
+    "id": "meadow",
+    "polyhaven": "alps_field",
+    "name": {
+      "en": "Alpine Meadow",
+      "zh": "高山草甸"
+    },
+    "ambient": "forest",
+    "focusU": 0.47,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.9
+  },
+  {
+    "id": "night",
+    "polyhaven": "dikhololo_night",
+    "name": {
+      "en": "Starry Night",
+      "zh": "星空之夜"
+    },
+    "ambient": "night",
+    "focusU": 0.5,
+    "domeIntensity": 1.0,
+    "iblIntensity": 0.6
+  }
+]

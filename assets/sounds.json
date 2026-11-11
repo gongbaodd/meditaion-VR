@@ -1,0 +1,15 @@
+{
+  "_comment": "Freesound picks for scripts/fetch-sounds.mjs. Only CC0 sounds are accepted. Leave id null to auto-pick the top-rated CC0 match; the script pins the chosen id here. Replace ids by hand after listening.",
+  "ambient": {
+    "rain": { "id": null, "query": "rain ambience gentle", "minDuration": 60, "maxDuration": 900, "gain": 0.8 },
+    "forest": { "id": null, "query": "forest birds ambience morning", "minDuration": 60, "maxDuration": 900, "gain": 0.8 },
+    "waves": { "id": null, "query": "ocean waves beach calm", "minDuration": 60, "maxDuration": 900, "gain": 0.8 },
+    "stream": { "id": null, "query": "stream brook water flowing", "minDuration": 60, "maxDuration": 900, "gain": 0.7 },
+    "night": { "id": null, "query": "night crickets ambience", "minDuration": 60, "maxDuration": 900, "gain": 0.8 }
+  },
+  "bells": {
+    "bowl": { "id": null, "query": "singing bowl single strike", "minDuration": 6, "maxDuration": 45, "gain": 0.9 },
+    "bowl-low": { "id": null, "query": "large singing bowl deep", "minDuration": 8, "maxDuration": 60, "gain": 0.9 },
+    "chime": { "id": null, "query": "meditation bell small chime", "minDuration": 3, "maxDuration": 25, "gain": 0.6 }
+  }
+}

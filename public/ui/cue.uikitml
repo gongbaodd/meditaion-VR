@@ -1,0 +1,23 @@
+<!-- Guidance caption shown during a session. Text set from code. -->
+<style>
+  .cue {
+    width: 900px;
+    padding-top: 22px;
+    padding-bottom: 22px;
+    padding-left: 36px;
+    padding-right: 36px;
+    border-radius: 32px;
+    background-color: #0d0f12;
+    justify-content: center;
+  }
+
+  .text {
+    color: #f4f1ea;
+    font-size: 36px;
+    line-height: 1.4;
+    text-align: center;
+  }
+</style>
+<div class="cue">
+  <span id="cue-text" class="text">Find a comfortable way to sit.</span>
+</div>
