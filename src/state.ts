@@ -16,10 +16,9 @@ export interface Place {
   iblIntensity: number;
 }
 export const PLACES = placesJson as Place[];
-export const PRACTICES: PracticeId[] = ['breath', 'bodyscan', 'open', 'metta'];
+export const PRACTICES: PracticeId[] = ['breath'];
 export const LENGTHS: Minutes[] = [3, 5, 10, 20];
-export const PATTERN_IDS: PatternId[] = ['calm', 'box', 'relax', 'natural'];
-export const INTERVALS = [0, 300, 600];
+export const PATTERN_IDS: PatternId[] = ['relax'];
 
 export interface Prefs {
   place: string;
@@ -27,7 +26,6 @@ export interface Prefs {
   minutes: Minutes;
   ambient: AmbientId;
   pattern: PatternId;
-  interval: number;
   ambientVolume: number;
   bellVolume: number;
   hd: boolean;

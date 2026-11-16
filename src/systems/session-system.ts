@@ -50,7 +50,7 @@ export class SessionSystem extends createSystem({}) {
     if (vr && this.world.xrEnabled && store.get().xrSupported && !store.get().immersive) {
       this.world.launchXR();
     }
-    const session = buildSession(p.practice, p.minutes, { pattern: p.pattern, intervalBell: p.interval });
+    const session = buildSession(p.practice, p.minutes, { pattern: p.pattern });
     this.runner = new SessionRunner(session, (c) => this.onCue(c));
     this.place.setLevel(0.15, 0);
     this.orb.reset();

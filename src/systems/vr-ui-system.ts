@@ -3,7 +3,7 @@ import { actions, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
 import { t } from '../strings.js';
 import { cycle } from '../hand/palm.js';
-import { type AppState, LENGTHS, PLACES, PRACTICES } from '../state.js';
+import { type AppState, LENGTHS, PLACES } from '../state.js';
 import { stats } from '../storage.js';
 import { vrFontFamilies } from '../ui/vr-font.js';
 import { placeInFront } from './placement.js';
@@ -114,7 +114,6 @@ export class VRUISystem extends createSystem({}) {
 
   private wire() {
     this.on('vr-menu', 'change-place', () => actions.openHub());
-    for (const p of PRACTICES) this.on('vr-menu', `practice-${p}`, () => store.setPrefs({ practice: p }));
     for (const m of LENGTHS) this.on('vr-menu', `len-${m}`, () => store.setPrefs({ minutes: m }));
     for (const a of AMBIENTS) this.on('vr-menu', `amb-${a}`, () => store.setPrefs({ ambient: a }));
     this.on('vr-menu', 'begin', () => actions.begin({ vr: true }));
@@ -131,7 +130,6 @@ export class VRUISystem extends createSystem({}) {
       this.on('vr-hand-menu', `hm-${id}-next`, () => apply(1));
       this.on('vr-hand-menu', `hm-${id}-val`, () => apply(1));
     };
-    step('practice', (d) => store.setPrefs({ practice: cycle(PRACTICES, store.get().prefs.practice, d) }));
     step('len', (d) => store.setPrefs({ minutes: cycle(LENGTHS, store.get().prefs.minutes, d) }));
     step('amb', (d) => store.setPrefs({ ambient: cycle(AMBIENTS, store.get().prefs.ambient, d) }));
     // Hand hub panel: turn the ring one place at a time, enter the front place, exit.
@@ -152,11 +150,9 @@ export class VRUISystem extends createSystem({}) {
     const set = (panel: PanelId, id: string, text: string) => this.el(panel, id)?.setProperties({ text });
     set('vr-menu', 'title', t('app.title'));
     set('vr-menu', 'tagline', t('app.tagline'));
-    set('vr-menu', 'lbl-practice', t('ui.practice').toUpperCase());
     set('vr-menu', 'lbl-length', t('ui.length').toUpperCase());
     set('vr-menu', 'lbl-sound', t('ui.sound').toUpperCase());
     set('vr-menu', 'change-place', t('ui.changePlace'));
-    for (const p of PRACTICES) set('vr-menu', `practice-${p}`, t(`practice.${p}`));
     for (const m of LENGTHS) set('vr-menu', `len-${m}`, `${m} ${t('ui.min')}`);
     for (const a of AMBIENTS) set('vr-menu', `amb-${a}`, t(`ambient.${a}`));
     set('vr-menu', 'begin', t('ui.begin'));
@@ -181,11 +177,9 @@ export class VRUISystem extends createSystem({}) {
     // Selection state on the menu chips.
     if (!prev || p !== prev.prefs) {
       const mark = (id: string, on: boolean) => this.el('vr-menu', id)?.setProperties(on ? SELECTED : UNSELECTED);
-      for (const x of PRACTICES) mark(`practice-${x}`, x === p.practice);
       for (const x of LENGTHS) mark(`len-${x}`, x === p.minutes);
       for (const x of AMBIENTS) mark(`amb-${x}`, x === p.ambient);
       const val = (id: string, text: string) => this.el('vr-hand-menu', id)?.setProperties({ text });
-      val('hm-practice-val', t(`practice.${p.practice}`));
       val('hm-len-val', `${p.minutes} ${t('ui.min')}`);
       val('hm-amb-val', t(`ambient.${p.ambient}`));
     }

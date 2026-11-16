@@ -1,7 +1,7 @@
 import { actions, publicUrl, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
 import { t } from '../strings.js';
-import { type AppState, INTERVALS, LENGTHS, PATTERN_IDS, PLACES, PRACTICES, type Prefs } from '../state.js';
+import { type AppState, LENGTHS, PLACES, type Prefs } from '../state.js';
 import { stats } from '../storage.js';
 import { SessionSystemRef } from './session-ref.js';
 
@@ -57,12 +57,7 @@ function radioGroup<K extends keyof Prefs>(
 export function mountOverlay() {
   const overlay = $('overlay');
 
-  const practices = radioGroup($('practices'), 'practice', PRACTICES, (p) => t(`practice.${p}`));
   const lengths = radioGroup($('lengths'), 'minutes', LENGTHS, (m) => `${m} ${t('ui.min')}`);
-  const patterns = radioGroup($('patterns'), 'pattern', PATTERN_IDS, (p) => t(`pattern.${p}`));
-  const intervals = radioGroup($('intervals'), 'interval', INTERVALS, (s) =>
-    s === 0 ? t('ui.interval.off') : `${s / 60} ${t('ui.min')}`,
-  );
   const ambients = radioGroup($('ambients'), 'ambient', AMBIENTS, (a) => t(`ambient.${a}`));
 
   const volA = $<HTMLInputElement>('vol-ambient');
@@ -102,14 +97,8 @@ export function mountOverlay() {
     overlay.dataset.immersive = String(s.immersive);
 
     if (!prev || p !== prev.prefs) {
-      practices.render(p.practice);
       lengths.render(p.minutes);
-      patterns.render(p.pattern);
-      intervals.render(p.interval);
       ambients.render(p.ambient);
-      $('practice-desc').textContent = t(`practice.${p.practice}.desc`);
-      $('pattern-wrap').hidden = p.practice !== 'breath';
-      $('interval-wrap').hidden = p.practice !== 'open';
       volA.value = String(p.ambientVolume);
       volB.value = String(p.bellVolume);
     }

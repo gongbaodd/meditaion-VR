@@ -1,7 +1,7 @@
 <!--
   In-VR menu. Labels are filled in from src/strings.json at runtime (ids end in -label or match a choice).
   Units are UIKit units; the scene node scales the panel to ~0.9 m wide.
-  Chip ids: place-<id>, practice-<id>, len-<minutes>, amb-<id>. Selected state is set from code.
+  Chip ids: place-<id>, len-<minutes>, amb-<id>. Selected state is set from code.
 -->
 <style>
   .root {
@@ -106,14 +106,6 @@
 <Panel class="root">
   <span id="title" class="title">Still Places</span>
   <span id="tagline" class="tagline">Sit somewhere beautiful. Breathe.</span>
-
-  <span id="lbl-practice" class="label">PRACTICE</span>
-  <div class="row">
-    <span id="practice-breath" class="chip">Breathing</span>
-    <span id="practice-bodyscan" class="chip">Body scan</span>
-    <span id="practice-open" class="chip">Open sitting</span>
-    <span id="practice-metta" class="chip">Loving-kindness</span>
-  </div>
 
   <span id="lbl-length" class="label">LENGTH</span>
   <div class="row">

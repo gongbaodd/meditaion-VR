@@ -4,7 +4,7 @@ import { SessionRunner } from './runner.js';
 import { buildSession } from './timeline.js';
 import type { Cue, Minutes, PracticeId } from './types.js';
 
-const PRACTICES: PracticeId[] = ['breath', 'bodyscan', 'open', 'metta'];
+const PRACTICES: PracticeId[] = ['breath'];
 const LENGTHS: Minutes[] = [3, 5, 10, 20];
 const all = PRACTICES.flatMap((p) => LENGTHS.map((m) => [p, m] as const));
 
@@ -48,15 +48,6 @@ describe('buildSession', () => {
       expect(strings, `missing ${k}`).toHaveProperty([k]);
     }
   });
-
-  it('open sitting rings an interval bell every 5 minutes of the main phase', () => {
-    // 20 min → main phase is 14 min → bells at +5 and +10 min.
-    const s = buildSession('open', 20);
-    const main = s.phases.find((p) => p.id === 'main')!;
-    const bells = s.cues.filter((c) => c.kind === 'bell' && c.bell === 'chime');
-    expect(bells.map((b) => b.at - main.start)).toEqual([300, 600]);
-    expect(buildSession('open', 20, { intervalBell: 0 }).cues.some((c) => c.kind === 'bell' && c.bell === 'chime')).toBe(false);
-  });
 });
 
 describe('SessionRunner', () => {
@@ -71,7 +62,7 @@ describe('SessionRunner', () => {
   });
 
   it('pause freezes the clock and stop delivers end', () => {
-    const s = buildSession('open', 3);
+    const s = buildSession('breath', 3);
     const seen: Cue[] = [];
     const r = new SessionRunner(s, (c) => seen.push(c));
     r.start();
@@ -89,7 +80,7 @@ describe('SessionRunner', () => {
   });
 
   it('clamps large frame gaps', () => {
-    const r = new SessionRunner(buildSession('open', 3), () => {});
+    const r = new SessionRunner(buildSession('breath', 3), () => {});
     r.start();
     r.tick(30);
     expect(r.elapsed).toBe(0.5);

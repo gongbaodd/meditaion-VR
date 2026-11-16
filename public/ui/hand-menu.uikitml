@@ -1,7 +1,7 @@
 <!--
   Hand menu: a compact chooser that sits beside the raised palm (see src/systems/hand-menu-system.ts).
   1 unit = 1 cm before the node scale; the scene node scales it to ~22 cm wide. Rows are 38 mm tall so a fingertip can hit them.
-  Ids: hm-<row>-prev / hm-<row>-val / hm-<row>-next for practice, len, amb; hm-begin; hm-place, hm-exit.
+  Ids: hm-<row>-prev / hm-<row>-val / hm-<row>-next for len, amb; hm-begin; hm-place, hm-exit.
 -->
 <style>
   .root {
@@ -97,11 +97,6 @@
   }
 </style>
 <div class="root">
-  <div class="row">
-    <span id="hm-practice-prev" class="step">&lt;</span>
-    <span id="hm-practice-val" class="val">Breathing</span>
-    <span id="hm-practice-next" class="step">&gt;</span>
-  </div>
   <div class="row">
     <span id="hm-len-prev" class="step">&lt;</span>
     <span id="hm-len-val" class="val">5 min</span>

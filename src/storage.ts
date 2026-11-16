@@ -1,5 +1,5 @@
 import { AMBIENTS } from './audio/beds.js';
-import { INTERVALS, LENGTHS, PATTERN_IDS, PLACES, PRACTICES, type Prefs } from './state.js';
+import { LENGTHS, PATTERN_IDS, PLACES, PRACTICES, type Prefs } from './state.js';
 import type { Minutes, PracticeId } from './session/types.js';
 
 const PREFS_KEY = 'still-places.prefs.v1';
@@ -11,8 +11,7 @@ export function defaultPrefs(): Prefs {
     practice: 'breath',
     minutes: 5,
     ambient: PLACES[0].ambient,
-    pattern: 'calm',
-    interval: 300,
+    pattern: 'relax',
     ambientVolume: 0.5,
     bellVolume: 0.8,
     hd: true,
@@ -49,7 +48,6 @@ export function loadPrefs(): Prefs {
     minutes: pick('minutes', (v) => LENGTHS.includes(v as Minutes)),
     ambient: pick('ambient', (v) => AMBIENTS.includes(v as never)),
     pattern: pick('pattern', (v) => PATTERN_IDS.includes(v as never)),
-    interval: pick('interval', (v) => INTERVALS.includes(v as number)),
     ambientVolume: pick('ambientVolume', vol),
     bellVolume: pick('bellVolume', vol),
     hd: pick('hd', (v) => typeof v === 'boolean'),

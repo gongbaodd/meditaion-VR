@@ -12,41 +12,13 @@ const PHASES: Record<Minutes, Record<Exclude<PhaseId, 'main'>, number>> = {
 };
 
 export const PATTERNS = {
-  natural: null,
-  calm: [4, 0, 6, 0],
-  box: [4, 4, 4, 4],
   relax: [4, 7, 8, 0],
-} as const satisfies Record<string, BreathPattern | null>;
+} as const satisfies Record<string, BreathPattern>;
 export type PatternId = keyof typeof PATTERNS;
-
-export const BODY_REGIONS = [
-  'feet',
-  'legs',
-  'hips',
-  'belly',
-  'chest',
-  'hands',
-  'shoulders',
-  'neck',
-  'face',
-  'head',
-] as const;
-
-export const METTA_TARGETS = ['self', 'friend', 'neutral', 'all'] as const;
-export const METTA_PHRASES = 4;
-
-const ANCHOR: Record<PracticeId, string> = {
-  breath: 'cue.anchor.breath',
-  bodyscan: 'cue.anchor.body',
-  open: 'cue.anchor.sound',
-  metta: 'cue.anchor.heart',
-};
 
 export interface BuildOptions {
   /** Breath pattern used during the main phase of the breathing practice. */
   pattern?: PatternId;
-  /** Interval bell period for open sitting, in seconds. 0 = none. */
-  intervalBell?: number;
 }
 
 export function buildSession(
@@ -83,31 +55,14 @@ export function buildSession(
   // Settle: the orb leads slow breaths.
   const settle = at('settle');
   push({ at: settle.start, kind: 'orb', visible: true });
-  push({ at: settle.start, kind: 'breath', pattern: PATTERNS.calm });
+  push({ at: settle.start, kind: 'breath', pattern: PATTERNS.relax });
   push({ at: settle.start + 0.5, kind: 'text', key: 'cue.settle', hold: 7 });
 
-  // Anchor: name the anchor; orb continues for breath practice only.
+  // Anchor: rest attention on the breath; the orb keeps pacing.
   const anchor = at('anchor');
-  push({ at: anchor.start + 1, kind: 'text', key: ANCHOR[practice], hold: 8 });
-  if (practice !== 'breath') {
-    push({ at: anchor.start + 4, kind: 'breath', pattern: null });
-  }
+  push({ at: anchor.start + 1, kind: 'text', key: 'cue.anchor.breath', hold: 8 });
 
-  const main = at('main');
-  switch (practice) {
-    case 'breath':
-      mainBreath(main, opts.pattern ?? 'calm', push);
-      break;
-    case 'bodyscan':
-      mainBodyScan(main, push);
-      break;
-    case 'open':
-      mainOpen(main, opts.intervalBell ?? 300, push);
-      break;
-    case 'metta':
-      mainMetta(main, push);
-      break;
-  }
+  mainBreath(at('main'), opts.pattern ?? 'relax', push);
 
   // Close: one bell, widen attention, three bells, end.
   const close = at('close');
@@ -145,44 +100,4 @@ function mainBreath(main: Span, pattern: PatternId, push: Push) {
     push({ at: mid, kind: 'breath', pattern: null });
     push({ at: mid + 1, kind: 'text', key: 'cue.breath.release', hold: 7 });
   }
-}
-
-function mainBodyScan(main: Span, push: Push) {
-  push({ at: main.start, kind: 'orb', visible: false });
-  const len = main.end - main.start;
-  const step = len / BODY_REGIONS.length;
-  BODY_REGIONS.forEach((region, i) => {
-    push({ at: main.start + i * step + 1, kind: 'text', key: `cue.body.${region}`, hold: Math.min(8, step * 0.6) });
-  });
-}
-
-function mainOpen(main: Span, interval: number, push: Push) {
-  push({ at: main.start, kind: 'orb', visible: false });
-  push({ at: main.start + 1, kind: 'text', key: 'cue.open.start', hold: 7 });
-  if (interval > 0) {
-    for (let t = main.start + interval; t < main.end - 20; t += interval) {
-      push({ at: t, kind: 'bell', bell: 'chime', count: 1 });
-    }
-  }
-}
-
-function mainMetta(main: Span, push: Push) {
-  push({ at: main.start, kind: 'orb', visible: true });
-  const len = main.end - main.start;
-  const per = len / METTA_TARGETS.length;
-  METTA_TARGETS.forEach((target, i) => {
-    const s = main.start + i * per;
-    if (i > 0) push({ at: s, kind: 'bell', bell: 'chime', count: 1 });
-    push({ at: s + 1.5, kind: 'text', key: `cue.metta.${target}`, hold: 7 });
-    const phraseGap = (per - 10) / METTA_PHRASES;
-    for (let k = 0; k < METTA_PHRASES; k++) {
-      push({
-        at: s + 10 + k * phraseGap,
-        kind: 'text',
-        key: `cue.metta.phrase.${k + 1}`,
-        hold: Math.min(7, phraseGap * 0.8),
-        vars: { who: `metta.who.${target}` },
-      });
-    }
-  });
 }

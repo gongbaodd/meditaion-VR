@@ -1,4 +1,4 @@
-export type PracticeId = 'breath' | 'bodyscan' | 'open' | 'metta';
+export type PracticeId = 'breath';
 export type Minutes = 3 | 5 | 10 | 20;
 export type PhaseId = 'arrive' | 'settle' | 'anchor' | 'main' | 'close';
 export type BellId = 'bowl' | 'bowl-low' | 'chime';
