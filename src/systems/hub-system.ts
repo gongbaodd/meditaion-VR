@@ -41,29 +41,40 @@ interface Win {
   lastGlowStep: number;
 }
 
+/** Handle circle radius on the dial plate (matches HANDLE_R in hub-dial.scene-asset.ts), metres. */
+const HANDLE_R = 0.082;
+/** How close (metres, on the plate) a press must land to the handle to start a drag. */
+const GRAB_RADIUS = 0.06;
+const HANDLE_IDLE = 0x8a90a0;
+const HANDLE_HOVER = 0xe8eaf0;
+
 const tmpQ = new Quaternion();
-const fwd = new Vector3();
-const up = new Vector3();
-const ref = new Vector3();
-const cross = new Vector3();
-const WORLD_UP = new Vector3(0, 1, 0);
 const aim = new Vector3();
-const toDial = new Vector3();
-const dialPos = new Vector3();
+const plateN = new Vector3();
+const toPlate = new Vector3();
+const plateHit = new Vector3();
+const plateCenter = new Vector3();
 const raySrc = new Vector3();
 const hexColor = new Color();
+const handleColor = new Color();
 
 /**
  * The VR hub: a ring of arched place windows and a dial that turns it.
  * `value` is the continuous dial position in detents; window i is dead ahead at value = i.
- * Twisting the controller/hand (roll about the pointing axis) while pressing the dial turns it;
- * on release it eases to the nearest detent. Thumbstick left/right steps one place; selecting
+ * Press the handle on the dial's rim (ray trigger or hand pinch) and drag it around the plate:
+ * the handle follows where the ray crosses the plate. On release it eases to the nearest
+ * detent. Thumbstick left/right steps one place; selecting
  * a side window brings it to the front; selecting the front window enters the place.
  */
 export class HubSystem extends createSystem({}) {
   private wins: Win[] = [];
   private dial!: Object3D;
   private knob: Object3D | undefined;
+  private head!: Object3D;
+  private handleMat: MeshBasicMaterial | undefined;
+  private haloMesh: Mesh | undefined;
+  private handleMesh: Mesh | undefined;
+  private hovering = false;
   private title!: UIKitMLAsset;
   private floor!: Object3D;
   private value = 0;
@@ -73,7 +84,8 @@ export class HubSystem extends createSystem({}) {
   private ready = false;
   private dragging = false;
   private dragHand: 'left' | 'right' = 'right';
-  private lastRoll = 0;
+  /** Plate angle (radians, atan2(x, z) in the dial head's frame) of the ray hit last frame. */
+  private lastAng = 0;
   private stickLatched = false;
   private lastWheel = 0;
 
@@ -89,6 +101,18 @@ export class HubSystem extends createSystem({}) {
     this.floor = floor;
     this.title = title;
     this.knob = dial.getObjectByName('Knob') ?? undefined;
+    this.head = dial.getObjectByName('Head') ?? dial;
+    const handle = dial.getObjectByName('Handle') as Mesh | undefined;
+    this.handleMesh = handle;
+    if (handle) {
+      // Materials are shared between clones; give this dial its own.
+      this.handleMat = (handle.material as MeshBasicMaterial).clone();
+      handle.material = this.handleMat;
+    }
+    this.haloMesh = (dial.getObjectByName('HandleHalo') as Mesh | undefined) ?? undefined;
+    if (this.haloMesh) {
+      this.haloMesh.material = (this.haloMesh.material as MeshBasicMaterial).clone();
+    }
     title.document.rootElement.setProperties({ fontFamilies: vrFontFamilies(), fontFamily: 'ui' } as never);
 
     PLACES.forEach((place, i) => {
@@ -146,7 +170,13 @@ export class HubSystem extends createSystem({}) {
     dial.addEventListener('pointerdown', down as never);
     dial.addEventListener('pointerup', upEv as never);
     dial.addEventListener('pointercancel', upEv as never);
+    const enter = () => (this.hovering = true);
+    const leave = () => (this.hovering = false);
+    dial.addEventListener('pointerenter', enter as never);
+    dial.addEventListener('pointerleave', leave as never);
     this.cleanupFuncs.push(() => {
+      dial.removeEventListener('pointerenter', enter as never);
+      dial.removeEventListener('pointerleave', leave as never);
       dial.removeEventListener('pointerdown', down as never);
       dial.removeEventListener('pointerup', upEv as never);
       dial.removeEventListener('pointercancel', upEv as never);
@@ -243,29 +273,29 @@ export class HubSystem extends createSystem({}) {
       this.snap = null;
       return;
     }
-    // Pick the hand whose ray points most nearly at the dial.
-    const rs = this.player.raySpaces;
-    this.dial.getWorldPosition(dialPos);
-    let best: 'left' | 'right' = 'right';
-    let bestD = Infinity;
+    // Pick the hand whose ray lands closest to the handle; ignore presses elsewhere on the dial.
+    const a0 = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
+    const hx = Math.sin(a0) * HANDLE_R;
+    const hz = Math.cos(a0) * HANDLE_R;
+    let best: 'left' | 'right' | null = null;
+    let bestD = GRAB_RADIUS;
+    let bestAng = 0;
     for (const hand of ['left', 'right'] as const) {
-      const r = rs[hand];
-      if (!r) continue;
-      r.getWorldPosition(raySrc);
-      r.getWorldQuaternion(tmpQ);
-      aim.set(0, 0, -1).applyQuaternion(tmpQ);
-      toDial.copy(dialPos).sub(raySrc);
-      const d = toDial.sub(aim.multiplyScalar(toDial.dot(aim))).length();
+      const ang = this.plateAngle(hand);
+      if (Number.isNaN(ang)) continue;
+      const d = Math.hypot(plateHit.x - hx, plateHit.z - hz);
       if (d < bestD) {
         bestD = d;
         best = hand;
+        bestAng = ang;
       }
     }
     void e;
+    if (!best) return;
     this.dragHand = best;
     this.dragging = true;
     this.snap = null;
-    this.lastRoll = this.roll();
+    this.lastAng = bestAng;
   }
 
   private endDrag() {
@@ -274,17 +304,27 @@ export class HubSystem extends createSystem({}) {
     this.snap = Math.round(this.value);
   }
 
-  /** Roll of the active ray space about its pointing axis, radians. NaN when pointing straight up/down. */
-  private roll(): number {
-    const r = this.player.raySpaces[this.dragHand];
+  /**
+   * Where a hand's ray crosses the dial plate: returns the angle around the plate centre
+   * (atan2(x, z) in the head's frame, so 0 = near edge) and leaves the hit in `plateHit`
+   * (head-local). NaN when the ray is parallel to the plate or points away from it.
+   */
+  private plateAngle(hand: 'left' | 'right'): number {
+    const r = this.player.raySpaces[hand];
     if (!r) return NaN;
+    r.getWorldPosition(raySrc);
     r.getWorldQuaternion(tmpQ);
-    fwd.set(0, 0, -1).applyQuaternion(tmpQ);
-    up.set(0, 1, 0).applyQuaternion(tmpQ);
-    if (Math.abs(fwd.y) > 0.92) return NaN;
-    ref.copy(WORLD_UP).addScaledVector(fwd, -WORLD_UP.dot(fwd)).normalize();
-    cross.crossVectors(ref, up);
-    return Math.atan2(fwd.dot(cross), ref.dot(up));
+    aim.set(0, 0, -1).applyQuaternion(tmpQ);
+    this.head.getWorldPosition(plateCenter);
+    this.head.getWorldQuaternion(tmpQ);
+    plateN.set(0, 1, 0).applyQuaternion(tmpQ);
+    const denom = aim.dot(plateN);
+    if (Math.abs(denom) < 0.05) return NaN;
+    const t = toPlate.copy(plateCenter).sub(raySrc).dot(plateN) / denom;
+    if (t < 0) return NaN;
+    plateHit.copy(raySrc).addScaledVector(aim, t);
+    this.head.worldToLocal(plateHit);
+    return Math.atan2(plateHit.x, plateHit.z);
   }
 
   // ---- frame ---------------------------------------------------------------------------
@@ -326,11 +366,12 @@ export class HubSystem extends createSystem({}) {
     if (this.dragging && !s.immersive) {
       // desktop: value is driven by pointer movement
     } else if (this.dragging) {
-      const r = this.roll();
-      if (!Number.isNaN(r) && !Number.isNaN(this.lastRoll)) {
-        this.value += wrapPi(r - this.lastRoll) / (KNOB_DEG_PER_DETENT * D2R);
+      // The handle follows the ray: turning the plate angle by +d lowers the dial value by d.
+      const ang = this.plateAngle(this.dragHand);
+      if (!Number.isNaN(ang)) {
+        this.value -= wrapPi(ang - this.lastAng) / (KNOB_DEG_PER_DETENT * D2R);
+        this.lastAng = ang;
       }
-      if (!Number.isNaN(r)) this.lastRoll = r;
     } else {
       this.stickStep();
       if (this.snap !== null) {
@@ -348,9 +389,27 @@ export class HubSystem extends createSystem({}) {
       audio.tick();
     }
 
-    if (this.knob) this.knob.rotation.y = -this.value * KNOB_DEG_PER_DETENT * D2R;
+    if (this.knob) this.knob.rotation.y = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
+    this.styleHandle(det);
 
     for (let i = 0; i < COUNT; i++) this.layout(i);
+  }
+
+  /** Grey when idle, brighter when pointed at, the front place's colour (with a halo) while held. */
+  private styleHandle(detent: number) {
+    if (!this.handleMat) return;
+    if (this.dragging) {
+      handleColor.set(PLACES[((detent % COUNT) + COUNT) % COUNT].color);
+    } else {
+      handleColor.set(this.hovering ? HANDLE_HOVER : HANDLE_IDLE);
+    }
+    this.handleMat.color.lerp(handleColor, 0.25);
+    if (this.haloMesh) {
+      this.haloMesh.visible = this.dragging;
+      (this.haloMesh.material as MeshBasicMaterial).color.copy(this.handleMat.color);
+    }
+    const scale = this.dragging ? 1.25 : this.hovering ? 1.15 : 1;
+    this.handleMesh?.scale.setScalar(scale);
   }
 
   private step(d: number) {
