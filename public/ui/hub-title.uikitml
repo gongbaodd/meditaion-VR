@@ -1,0 +1,29 @@
+<!-- Hub title + hint. Text set from code (ids: hub-title, hub-hint). -->
+<style>
+  .box {
+    width: 900px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .title {
+    color: #fafaf7;
+    font-size: 84px;
+    font-weight: bold;
+    letter-spacing: 6px;
+    text-align: center;
+  }
+
+  .hint {
+    color: #b8bcc4;
+    font-size: 30px;
+    text-align: center;
+  }
+</style>
+<div class="box">
+  <span id="hub-title" class="title">Still Places</span>
+  <span id="hub-hint" class="hint">Turn the dial. Select a window to enter.</span>
+</div>

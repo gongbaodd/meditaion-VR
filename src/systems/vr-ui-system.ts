@@ -2,7 +2,7 @@ import { createSystem, type UIKit, type UIKitMLAsset } from '@iwsdk/core';
 import { actions, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
 import { getLang, onLangChange, t } from '../i18n/index.js';
-import { type AppState, LENGTHS, PLACES, PRACTICES } from '../state.js';
+import { type AppState, LENGTHS, PRACTICES } from '../state.js';
 import { stats } from '../storage.js';
 import { vrFontFamilies } from '../ui/vr-font.js';
 import { placeInFront } from './placement.js';
@@ -79,7 +79,7 @@ export class VRUISystem extends createSystem({}) {
   }
 
   private wire() {
-    for (const p of PLACES) this.on('vr-menu', `place-${p.id}`, () => store.setPrefs({ place: p.id, ambient: p.ambient }));
+    this.on('vr-menu', 'change-place', () => actions.openHub());
     for (const p of PRACTICES) this.on('vr-menu', `practice-${p}`, () => store.setPrefs({ practice: p }));
     for (const m of LENGTHS) this.on('vr-menu', `len-${m}`, () => store.setPrefs({ minutes: m }));
     for (const a of AMBIENTS) this.on('vr-menu', `amb-${a}`, () => store.setPrefs({ ambient: a }));
@@ -99,11 +99,10 @@ export class VRUISystem extends createSystem({}) {
     const set = (panel: PanelId, id: string, text: string) => this.el(panel, id)?.setProperties({ text });
     set('vr-menu', 'title', t('app.title'));
     set('vr-menu', 'tagline', t('app.tagline'));
-    set('vr-menu', 'lbl-place', t('ui.place').toUpperCase());
     set('vr-menu', 'lbl-practice', t('ui.practice').toUpperCase());
     set('vr-menu', 'lbl-length', t('ui.length').toUpperCase());
     set('vr-menu', 'lbl-sound', t('ui.sound').toUpperCase());
-    for (const p of PLACES) set('vr-menu', `place-${p.id}`, p.name[lang]);
+    set('vr-menu', 'change-place', t('ui.changePlace'));
     for (const p of PRACTICES) set('vr-menu', `practice-${p}`, t(`practice.${p}`));
     for (const m of LENGTHS) set('vr-menu', `len-${m}`, `${m} ${t('ui.min')}`);
     for (const a of AMBIENTS) set('vr-menu', `amb-${a}`, t(`ambient.${a}`));
@@ -125,7 +124,6 @@ export class VRUISystem extends createSystem({}) {
     // Selection state on the menu chips.
     if (!prev || p !== prev.prefs) {
       const mark = (id: string, on: boolean) => this.el('vr-menu', id)?.setProperties(on ? SELECTED : UNSELECTED);
-      for (const x of PLACES) mark(`place-${x.id}`, x.id === p.place);
       for (const x of PRACTICES) mark(`practice-${x}`, x === p.practice);
       for (const x of LENGTHS) mark(`len-${x}`, x === p.minutes);
       for (const x of AMBIENTS) mark(`amb-${x}`, x === p.ambient);

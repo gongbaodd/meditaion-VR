@@ -9,9 +9,9 @@ const EYE_HEIGHT = 1.2; // seated
  */
 export class LookSystem extends createSystem({}) {
   private yaw = 0;
-  private pitch = 0;
+  private pitch = -0.2; // starts in the hub
   private targetYaw = 0;
-  private targetPitch = 0;
+  private targetPitch = -0.2;
   private dragging: { id: number; x: number; y: number } | null = null;
   private euler = new Euler(0, 0, 0, 'YXZ');
   private idle = 0;
@@ -21,6 +21,7 @@ export class LookSystem extends createSystem({}) {
     canvas.style.touchAction = 'none';
     const down = (e: PointerEvent) => {
       if (this.world.visibilityState.value !== VisibilityState.NonImmersive) return;
+      if (store.get().mode === 'hub') return; // the hub is not for looking around
       this.dragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
       canvas.setPointerCapture(e.pointerId);
       canvas.style.cursor = 'grabbing';
@@ -54,8 +55,9 @@ export class LookSystem extends createSystem({}) {
     // New place: face its view again.
     this.cleanupFuncs.push(
       store.subscribe((s, prev) => {
-        if (s.prefs.place !== prev.prefs.place) {
-          this.targetPitch = 0;
+        if (s.prefs.place !== prev.prefs.place || (s.mode === 'hub' && prev.mode !== 'hub')) {
+          // The hub is seen from slightly above so the dial at your feet fits in frame.
+          this.targetPitch = s.mode === 'hub' ? -0.2 : 0;
           this.targetYaw = Math.round(this.targetYaw / (2 * Math.PI)) * 2 * Math.PI;
         }
       }),
@@ -64,7 +66,8 @@ export class LookSystem extends createSystem({}) {
 
   update(delta: number): void {
     if (this.world.visibilityState.value !== VisibilityState.NonImmersive) return;
-    const kb = this.world.input.keyboard;
+    const hub = store.get().mode === 'hub';
+    const kb = hub ? null : this.world.input.keyboard;
     const speed = 1.2 * delta;
     if (kb) {
       const held = (c: string) => kb.getKeyPressed(c);

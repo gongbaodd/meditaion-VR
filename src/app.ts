@@ -11,7 +11,7 @@ const prefs = loadPrefs();
 
 export const store = new Store({
   prefs,
-  mode: 'menu',
+  mode: 'hub',
   shownPlace: null,
   loading: true,
   immersive: false,
@@ -44,5 +44,6 @@ export const actions = {
   resume: () => {},
   end: () => {},
   backToMenu: () => {},
+  openHub: () => {},
   exitVR: () => {},
 };

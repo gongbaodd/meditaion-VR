@@ -1,4 +1,7 @@
 import { AssetType, defineAssets } from '@iwsdk/core';
+import hubDial from './scene-assets/hub-dial.scene-asset.js';
+import hubFloor from './scene-assets/hub-floor.scene-asset.js';
+import placeWindow from './scene-assets/place-window.scene-asset.js';
 
 /**
  * Only the spatial UI panels are declared here. HDRIs are loaded on demand by
@@ -19,4 +22,9 @@ export default defineAssets({
   'hud-panel': uikitml('hud.uikitml', 'Session HUD'),
   'pause-panel': uikitml('pause.uikitml', 'Pause Panel'),
   'summary-panel': uikitml('summary.uikitml', 'Summary Panel'),
+  'place-window': placeWindow,
+  'hub-dial': hubDial,
+  'hub-floor': hubFloor,
+  'hub-title-panel': uikitml('hub-title.uikitml', 'Hub Title'),
+  'window-label-panel': uikitml('window-label.uikitml', 'Window Label'),
 });

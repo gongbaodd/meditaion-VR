@@ -57,19 +57,6 @@ function radioGroup<K extends keyof Prefs>(
 export function mountOverlay() {
   const overlay = $('overlay');
 
-  const places = radioGroup(
-    $('places'),
-    'place',
-    PLACES.map((p) => p.id),
-    (id) => PLACES.find((p) => p.id === id)!.name[getLang()],
-    'place',
-    (b, id) => {
-      b.style.backgroundImage = `url("${publicUrl(`hdri/${id}_thumb.jpg`)}")`;
-      b.append(document.createElement('span'));
-    },
-    // Picking a place also picks its natural soundscape.
-    (id) => ({ ambient: PLACES.find((p) => p.id === id)!.ambient }),
-  );
   const practices = radioGroup($('practices'), 'practice', PRACTICES, (p) => t(`practice.${p}`));
   const lengths = radioGroup($('lengths'), 'minutes', LENGTHS, (m) => `${m} ${t('ui.min')}`);
   const patterns = radioGroup($('patterns'), 'pattern', PATTERN_IDS, (p) => t(`pattern.${p}`));
@@ -85,6 +72,7 @@ export function mountOverlay() {
 
   $('lang').addEventListener('click', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
   $('begin-vr').addEventListener('click', () => actions.begin({ vr: true }));
+  $('change-place').addEventListener('click', () => actions.openHub());
   $('begin-2d').addEventListener('click', () => actions.begin({ vr: false }));
   $('pause').addEventListener('click', () => actions.pause());
   $('resume').addEventListener('click', () => actions.resume());
@@ -115,7 +103,6 @@ export function mountOverlay() {
     overlay.dataset.immersive = String(s.immersive);
 
     if (!prev || p !== prev.prefs || prev.prefs.lang !== p.lang) {
-      places.render(p.place);
       practices.render(p.practice);
       lengths.render(p.minutes);
       patterns.render(p.pattern);

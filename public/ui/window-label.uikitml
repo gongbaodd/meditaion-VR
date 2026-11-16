@@ -1,0 +1,23 @@
+<!-- Name chip under a hub window. Text and colours set from code (id: name). -->
+<style>
+  .chip {
+    width: 520px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-radius: 40px;
+    border-width: 3px;
+    border-color: #e8eaf0;
+    background-color: #0d0f12;
+    justify-content: center;
+  }
+
+  .name {
+    color: #f4f1ea;
+    font-size: 42px;
+    font-weight: bold;
+    text-align: center;
+  }
+</style>
+<div class="chip">
+  <span id="name" class="name">Place</span>
+</div>

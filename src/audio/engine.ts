@@ -43,6 +43,23 @@ export class AudioEngine {
     return this.ctx?.state === 'running';
   }
 
+  /** Short soft click, used by the hub dial at each detent. */
+  tick(): void {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const t = ctx.currentTime;
+    o.type = 'sine';
+    o.frequency.value = 1500;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.1, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g).connect(this.master);
+    o.start(t);
+    o.stop(t + 0.06);
+  }
+
   async unlock(): Promise<void> {
     if (!this.ctx) {
       const ctx = new AudioContext({ latencyHint: 'playback' });

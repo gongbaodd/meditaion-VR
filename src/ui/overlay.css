@@ -277,6 +277,9 @@ button:focus-visible,
 }
 
 .foot {
+  /* Always the last grid row: auto-placement used to stretch it over the canvas and swallow clicks. */
+  grid-row: 3;
+  pointer-events: none !important;
   display: flex;
   justify-content: center;
   gap: 16px;
@@ -287,6 +290,7 @@ button:focus-visible,
 
 .foot a {
   color: inherit;
+  pointer-events: auto;
 }
 
 .session-bar {

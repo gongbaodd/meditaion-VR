@@ -8,6 +8,8 @@ export interface Place {
   id: string;
   polyhaven: string;
   name: Record<Lang, string>;
+  /** Accent colour (hex) for the hub window glow. */
+  color: string;
   ambient: AmbientId;
   /** Horizontal position (0–1) of the view the user should face, in the equirect image. */
   focusU: number;
@@ -34,12 +36,13 @@ export interface Prefs {
 }
 
 /**
+ * hub      VR only: ring of place windows + dial
  * menu     choosing (2D overlay or VR panel)
  * running  session clock is advancing
  * paused   clock frozen, pause panel shown
  * summary  session finished, summary shown
  */
-export type Mode = 'menu' | 'running' | 'paused' | 'summary';
+export type Mode = 'hub' | 'menu' | 'running' | 'paused' | 'summary';
 
 export interface AppState {
   prefs: Prefs;

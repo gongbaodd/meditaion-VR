@@ -107,16 +107,6 @@
   <span id="title" class="title">Still Places</span>
   <span id="tagline" class="tagline">Sit somewhere beautiful. Breathe.</span>
 
-  <span id="lbl-place" class="label">PLACE</span>
-  <div class="row">
-    <span id="place-dawn" class="chip">Mountain Dawn</span>
-    <span id="place-forest" class="chip">Forest Light</span>
-    <span id="place-lake" class="chip">Lakeside</span>
-    <span id="place-beach" class="chip">Sunrise Shore</span>
-    <span id="place-meadow" class="chip">Alpine Meadow</span>
-    <span id="place-night" class="chip">Starry Night</span>
-  </div>
-
   <span id="lbl-practice" class="label">PRACTICE</span>
   <div class="row">
     <span id="practice-breath" class="chip">Breathing</span>
@@ -146,6 +136,7 @@
   <div class="actions">
     <span id="begin" class="primary">Begin</span>
     <div class="spacer"></div>
+    <span id="change-place" class="ghost">Change place</span>
     <span id="lang" class="ghost">中文</span>
     <span id="exit" class="ghost">Exit VR</span>
   </div>

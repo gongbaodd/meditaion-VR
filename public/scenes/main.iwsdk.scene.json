@@ -53,6 +53,362 @@
   "resources": {},
   "nodes": [
     {
+      "id": "hub-floor",
+      "name": "Hub Floor",
+      "content": {
+        "type": "asset",
+        "asset": "hub-floor"
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "scale": 1
+      }
+    },
+    {
+      "id": "hub-dial",
+      "name": "Hub Dial",
+      "content": {
+        "type": "asset",
+        "asset": "hub-dial"
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          -0.45
+        ],
+        "scale": 1
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-title",
+      "name": "Hub Title",
+      "content": {
+        "type": "asset",
+        "asset": "hub-title-panel"
+      },
+      "transform": {
+        "position": [
+          0,
+          2.0,
+          -3.2
+        ],
+        "scale": 0.22
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-win-0",
+      "name": "Window 0",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0,
+          -3.0
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          0,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-win-1",
+      "name": "Window 1",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          1.763,
+          0,
+          -2.427
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          -36,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-win-2",
+      "name": "Window 2",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          2.853,
+          0,
+          -0.927
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          -72,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-win-3",
+      "name": "Window 3",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          2.853,
+          0,
+          0.927
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          -108,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-win-4",
+      "name": "Window 4",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          1.763,
+          0,
+          2.427
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          -144,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-win-5",
+      "name": "Window 5",
+      "content": {
+        "type": "asset",
+        "asset": "place-window"
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0,
+          3.0
+        ],
+        "scale": 1,
+        "rotationDeg": [
+          0,
+          -180,
+          0
+        ]
+      },
+      "components": {
+        "RayInteractable": {}
+      }
+    },
+    {
+      "id": "hub-label-0",
+      "name": "Window Label 0",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.35,
+          -3.0
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          0,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-label-1",
+      "name": "Window Label 1",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          1.763,
+          0.35,
+          -2.427
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          -36,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-label-2",
+      "name": "Window Label 2",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          2.853,
+          0.35,
+          -0.927
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          -72,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-label-3",
+      "name": "Window Label 3",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          2.853,
+          0.35,
+          0.927
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          -108,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-label-4",
+      "name": "Window Label 4",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          1.763,
+          0.35,
+          2.427
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          -144,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "hub-label-5",
+      "name": "Window Label 5",
+      "content": {
+        "type": "asset",
+        "asset": "window-label-panel"
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.35,
+          3.0
+        ],
+        "scale": 0.1,
+        "rotationDeg": [
+          0,
+          -180,
+          0
+        ]
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
       "id": "vr-menu",
       "name": "Menu Panel",
       "content": {

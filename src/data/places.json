@@ -9,7 +9,8 @@
     "ambient": "forest",
     "focusU": 0.62,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.9
+    "iblIntensity": 0.9,
+    "color": "#ff9d6c"
   },
   {
     "id": "forest",
@@ -21,7 +22,8 @@
     "ambient": "forest",
     "focusU": 0.59,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.9
+    "iblIntensity": 0.9,
+    "color": "#7fd08a"
   },
   {
     "id": "lake",
@@ -33,7 +35,8 @@
     "ambient": "forest",
     "focusU": 0.67,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.9
+    "iblIntensity": 0.9,
+    "color": "#6fc3d9"
   },
   {
     "id": "beach",
@@ -45,7 +48,8 @@
     "ambient": "waves",
     "focusU": 0.59,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.9
+    "iblIntensity": 0.9,
+    "color": "#ffc46b"
   },
   {
     "id": "meadow",
@@ -57,7 +61,8 @@
     "ambient": "forest",
     "focusU": 0.47,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.9
+    "iblIntensity": 0.9,
+    "color": "#b9e36b"
   },
   {
     "id": "night",
@@ -69,6 +74,7 @@
     "ambient": "night",
     "focusU": 0.5,
     "domeIntensity": 1.0,
-    "iblIntensity": 0.6
+    "iblIntensity": 0.6,
+    "color": "#7d8cff"
   }
 ]
