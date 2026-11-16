@@ -1,4 +1,4 @@
-import { createSystem, InputComponent, VisibilityState } from '@iwsdk/core';
+import { createSystem, VisibilityState } from '@iwsdk/core';
 import { actions, audio, store } from '../app.js';
 import { t } from '../i18n/index.js';
 import { SessionRunner } from '../session/runner.js';
@@ -146,17 +146,11 @@ export class SessionSystem extends createSystem({}) {
     if (!r) return;
     const mode = store.get().mode;
 
-    // Pause from any controller trigger, or Space on desktop.
-    if (mode === 'running') {
-      const pads = this.input.xr?.gamepads;
-      const pressed =
-        pads?.left?.getButtonDown(InputComponent.Trigger) ||
-        pads?.right?.getButtonDown(InputComponent.Trigger) ||
-        this.world.input.keyboard?.getKeyDown('Space');
-      if (pressed) {
-        this.pause();
-        return;
-      }
+    // Space toggles pause on desktop. In VR, pause is the in-scene button (VRUISystem)
+    // and resume/end are on the hand menu, so no global trigger or pinch pauses.
+    if (mode === 'running' && this.world.input.keyboard?.getKeyDown('Space')) {
+      this.pause();
+      return;
     } else if (mode === 'paused' && this.world.input.keyboard?.getKeyDown('Space')) {
       this.resume();
       return;

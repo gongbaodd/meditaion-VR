@@ -23,7 +23,8 @@ const UNSELECTED = { backgroundColor: '#24272c', color: '#eceef1', borderColor: 
 const LAYOUT: Record<PlacedId, [number, number, number]> = {
   'vr-menu': [1.2, -0.2, -10],
   'vr-cue': [1.5, -0.5, -14],
-  'vr-pause': [1.1, -0.15, -8],
+  // Low, below the orb and cue, so it stays out of the resting gaze.
+  'vr-pause': [1.2, -0.75, -30],
   'vr-summary': [1.2, -0.15, -8],
 };
 
@@ -33,7 +34,7 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).p
  * Spatial UI for immersive mode. Panels are declared in the scene JSON; this
  * system wires clicks, fills translated labels, and shows the right panel for
  * the current mode, placed in front of wherever the viewer is looking. The menu and
- * the session HUD live on a raised hand instead (HandMenuSystem); the in-front menu
+ * the paused-session controls live on a raised hand instead (HandMenuSystem); the in-front menu
  * only returns as a fallback when no hand or controller is tracked.
  */
 export class VRUISystem extends createSystem({}) {
@@ -125,7 +126,12 @@ export class VRUISystem extends createSystem({}) {
     this.on('vr-menu', 'begin', () => actions.begin({ vr: true }));
     this.on('vr-menu', 'lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-menu', 'exit', () => actions.exitVR());
-    this.on('vr-hand-hud', 'hh', () => actions.pause());
+    // In-scene pause button: pauses while running; once paused, Resume/End are on the hand menu.
+    this.on('vr-pause', 'pause-btn', () => {
+      if (store.get().mode === 'running') actions.pause();
+    });
+    this.on('vr-hand-hud', 'hh-resume', () => actions.resume());
+    this.on('vr-hand-hud', 'hh-end', () => actions.end());
     // Hand menu: ‹ value › steppers, same effects as the chips on the in-front menu.
     const step = (id: string, apply: (d: 1 | -1) => void) => {
       this.on('vr-hand-menu', `hm-${id}-prev`, () => apply(-1));
@@ -146,8 +152,6 @@ export class VRUISystem extends createSystem({}) {
     this.on('vr-hand-menu', 'hm-place', () => actions.openHub());
     this.on('vr-hand-menu', 'hm-lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-hand-menu', 'hm-exit', () => actions.exitVR());
-    this.on('vr-pause', 'resume', () => actions.resume());
-    this.on('vr-pause', 'end', () => actions.end());
     this.on('vr-summary', 'again', () => actions.begin({ vr: true }));
     this.on('vr-summary', 'to-menu', () => actions.backToMenu());
   }
@@ -176,10 +180,10 @@ export class VRUISystem extends createSystem({}) {
     set('vr-hand-hub', 'hb-lang', t('ui.language'));
     set('vr-hand-hub', 'hb-exit', t('ui.exitVR'));
     this.showHubPlace();
-    set('vr-hand-hud', 'hh-pause', t('ui.pause'));
-    set('vr-pause', 'pause-title', t('ui.paused'));
-    set('vr-pause', 'resume', t('ui.resume'));
-    set('vr-pause', 'end', t('ui.end'));
+    set('vr-hand-hud', 'hh-title', t('ui.paused'));
+    set('vr-hand-hud', 'hh-resume', t('ui.resume'));
+    set('vr-hand-hud', 'hh-end', t('ui.end'));
+    set('vr-pause', 'pause-sign', t('ui.pauseSign'));
     set('vr-summary', 'sum-title', t('ui.complete'));
     set('vr-summary', 'again', t('ui.again'));
     set('vr-summary', 'to-menu', t('ui.menu'));
@@ -213,7 +217,7 @@ export class VRUISystem extends createSystem({}) {
       else if (hint) want.add('vr-cue');
     }
     if (s.mode === 'running' && s.cue) want.add('vr-cue');
-    if (s.mode === 'paused') want.add('vr-pause');
+    if (s.mode === 'running' || s.mode === 'paused') want.add('vr-pause');
     if (s.mode === 'summary') want.add('vr-summary');
 
     const modeChanged = !prev || prev.mode !== s.mode || prev.immersive !== s.immersive;
@@ -224,6 +228,13 @@ export class VRUISystem extends createSystem({}) {
       else if (!this.shown.has(id) || (modeChanged && id !== 'vr-cue')) this.show(id);
     }
 
+    // Same panel in both modes: a Pause button while running, a "Paused" sign pointing to the hand menu after.
+    if (!prev || prev.mode !== s.mode || prev.prefs.lang !== p.lang) {
+      const paused = s.mode === 'paused';
+      this.el('vr-pause', 'pause-label')?.setProperties({ text: t(paused ? 'ui.paused' : 'ui.pause') });
+      this.el('vr-pause', 'pause-sign')?.setProperties({ display: paused ? 'flex' : 'none' });
+      this.el('vr-pause', 'pause-btn')?.setProperties({ cursor: paused ? 'default' : 'pointer' });
+    }
     if (hint) this.el('vr-cue', 'cue-text')?.setProperties({ text: t('ui.handHint') });
     else if (s.cue && (!prev || s.cue !== prev.cue || prev.mode === 'menu')) {
       this.el('vr-cue', 'cue-text')?.setProperties({ text: s.cue });

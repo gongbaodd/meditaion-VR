@@ -1,23 +1,34 @@
-<!-- Session HUD shown beside the raised palm while a session runs. Scene node scales it to ~12 cm wide. -->
+<!--
+  Paused-session hand menu, shown beside the raised palm while a session is paused.
+  The scene node scales it to ~18 cm wide. Ids: hh-title, hh-time, hh-resume, hh-end.
+-->
 <style>
-  .hud {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 240px;
-    height: 80px;
-    gap: 12px;
-    padding-left: 24px;
-    padding-right: 24px;
-    border-radius: 40px;
+  .root {
+    flex-direction: column;
+    width: 360px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 14px;
+    border-radius: 36px;
     border-width: 2px;
     border-color: #3a3d43;
     background-color: #15171a;
-    cursor: pointer;
   }
 
-  .hud:hover {
-    border-color: #c9ccd2;
+  .head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .title {
+    color: #eceef1;
+    font-size: 30px;
+    font-weight: bold;
   }
 
   .time {
@@ -25,13 +36,46 @@
     font-size: 28px;
   }
 
-  .pause {
-    color: #eceef1;
-    font-size: 28px;
+  .primary {
+    height: 84px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 42px;
+    background-color: #f1d9a8;
+    color: #1a1712;
+    font-size: 36px;
     font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .ghost {
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    background-color: #24272c;
+    color: #eceef1;
+    font-size: 30px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #f1d9a8;
   }
 </style>
-<div id="hh" class="hud">
-  <span id="hh-pause" class="pause">Pause</span>
-  <span id="hh-time" class="time">5:00</span>
+<div class="root">
+  <div class="head">
+    <span id="hh-title" class="title">Paused</span>
+    <span id="hh-time" class="time">5:00</span>
+  </div>
+  <span id="hh-resume" class="primary">Resume</span>
+  <span id="hh-end" class="ghost">End session</span>
 </div>

@@ -15,18 +15,16 @@ opens it as a space nested under the repo in the Spaces sidebar.
 ## Folder layout
 
 ```
-~/github/meditaion-VR/
-  main/                        the main checkout (branch main). Holds .git, node_modules, everything.
-  hub/                         old-style worktree made by hand with git. Stays until hub is merged.
+~/github/meditaion-VR/         the main checkout (branch main). Holds .git, node_modules, everything.
 
 ~/.herdr/worktrees/
-  main/                        Herdr names this folder after the main checkout's folder, which is "main"
+  meditaion-VR/                Herdr names this folder after the main checkout's folder
     <task>/                    one worktree per task, e.g. hand-menu/
 ```
 
 The path is always `~/.herdr/worktrees/<repo>/<branch>`. `<repo>` is the name of the folder that
-holds `.git`, so for this project it is `main`, not `meditaion-VR`. Slashes and other special
-characters in the branch name become dashes in the folder name.
+holds `.git`, so for this project it is `meditaion-VR`. Slashes and other special characters in
+the branch name become dashes in the folder name.
 
 ## Rules
 
@@ -45,26 +43,26 @@ characters in the branch name become dashes in the folder name.
 
 1. In Herdr, select the **main** space.
 2. Space menu or the **+** menu → **New worktree…** → type `<task>` as the branch name.
-   Herdr runs `git worktree add -b <task> ~/.herdr/worktrees/main/<task> HEAD` and opens the space.
+   Herdr runs `git worktree add -b <task> ~/.herdr/worktrees/meditaion-VR/<task> HEAD` and opens the space.
    If the branch already exists, it checks that branch out instead of creating one.
 3. In the new space's terminal:
 
 ```sh
 npm install
-ln -s ~/github/meditaion-VR/main/public/hdri public/hdri   # reuse the downloaded HDRIs (gitignored)
+ln -s ~/github/meditaion-VR/public/hdri public/hdri   # reuse the downloaded HDRIs (gitignored)
 ```
 
-The HDRI link must be an absolute path. The relative `../../main/public/hdri` link used in
-`meditaion-VR/hub` does not resolve from `~/.herdr/worktrees/`.
+The HDRI link must be an absolute path. A relative link does not resolve from
+`~/.herdr/worktrees/`.
 
 4. Start the agent in that space (the **+** menu, or `hc run --bg claude` from its terminal).
 
 ## See what is running
 
-- Spaces sidebar: each worktree space sits under `main` and shows its branch, ahead/behind and
+- Spaces sidebar: each worktree space sits under the repo's main space and shows its branch, ahead/behind and
   uncommitted changes.
-- **Open worktree…** lists every checkout of the repo, including ones made outside Herdr such as
-  `meditaion-VR/hub`, and opens or jumps to its space.
+- **Open worktree…** lists every checkout of the repo, including ones made outside Herdr, and
+  opens or jumps to its space.
 - `git worktree list` from any checkout, and `hc ls` for the terminals and agents.
 
 ## Finish a task
@@ -101,21 +99,25 @@ Then the goal, the steps, and how to check it is done.
 
 ## Current state (2026-11-16)
 
-| Checkout | Branch | Made with | State |
-|---|---|---|---|
-| `~/github/meditaion-VR/main` | `main` | — | keep. Contains the merged hub work. |
-| `~/github/meditaion-VR/hub` | `hub` | `git worktree add` | merged into `main` (fast-forward). An agent terminal is still open in it. When it is closed, in Herdr use **Open worktree…** → `hub` → **Remove worktree**, then `git branch -d hub` in the main space. |
+| Checkout | Branch | State |
+|---|---|---|
+| `~/github/meditaion-VR` | `main` | the only checkout. Contains the merged hub work. |
 
-`hand-menu` and `handmenu` were leftover Herdr branches and are deleted.
+Done on 2026-11-16:
 
-New tasks use Herdr from now on. Nothing has to be moved.
+- The `hub` worktree (`meditaion-VR/hub`, made by hand with `git worktree add`) is removed and the
+  `hub` branch is deleted. It was fully merged into `main`.
+- The repo moved up from `meditaion-VR/main/` to `meditaion-VR/`. The `main/` container folder is
+  gone, and so is the empty `~/.herdr/worktrees/main/`.
+- `hand-menu` and `handmenu` were leftover Herdr branches and are deleted.
+
+In Herdr, the repo has to be opened again from `~/github/meditaion-VR`. The old space pointed at
+`meditaion-VR/main`, which no longer exists.
+
+New tasks use Herdr from now on.
 
 ## Optional
 
-- **Folder name.** The `meditaion-VR/main/` container was made for side-by-side git worktrees and
-  is no longer needed, but it is why Herdr's folder is called `main`. Moving the repo back up to
-  `meditaion-VR/` would give `~/.herdr/worktrees/meditaion-VR/<task>`. Only worth doing when no
-  worktree and no agent is open, followed by `git worktree repair`.
 - **Worktree location.** Herdr 0.1.16 (downloaded, not yet running; 0.1.15 is installed) adds
   `worktrees.directory` in `~/.config/herdr-app/settings.json` to put checkouts somewhere other
   than `~/.herdr/worktrees`. Not needed for this plan.

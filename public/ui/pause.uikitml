@@ -1,19 +1,39 @@
-<!-- Pause panel. -->
+<!--
+  In-scene pause button, placed low in front of the viewer while a session runs.
+  Running: a "Pause · 3:12" pill (id pause-btn). Paused: the pill reads "Paused" and the
+  sign below (id pause-sign) asks the viewer to raise a palm; Resume / End live on the hand menu.
+  Ids: pause-btn, pause-label, pause-time, pause-sign.
+-->
 <style>
   .root {
     flex-direction: column;
     align-items: center;
-    width: 620px;
-    padding-top: 40px;
-    padding-bottom: 40px;
-    padding-left: 40px;
-    padding-right: 40px;
-    gap: 24px;
+    width: 520px;
+    gap: 16px;
   }
 
-  .title {
-    color: #fafaf7;
-    font-size: 48px;
+  .btn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 84px;
+    padding-left: 40px;
+    padding-right: 40px;
+    border-radius: 42px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    background-color: #15171a;
+    cursor: pointer;
+  }
+
+  .btn:hover {
+    border-color: #f1d9a8;
+  }
+
+  .label {
+    color: #eceef1;
+    font-size: 34px;
     font-weight: bold;
   }
 
@@ -22,50 +42,24 @@
     font-size: 30px;
   }
 
-  .actions {
-    flex-direction: row;
-    gap: 18px;
-  }
-
-  .primary {
-    color: #1a1712;
-    font-size: 34px;
-    font-weight: bold;
+  .sign {
+    display: none;
+    width: 520px;
     padding-top: 18px;
     padding-bottom: 18px;
-    padding-left: 44px;
-    padding-right: 44px;
-    border-radius: 40px;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-radius: 28px;
     background-color: #f1d9a8;
-    cursor: pointer;
-  }
-
-  .primary:hover {
-    background-color: #ffe9bf;
-  }
-
-  .ghost {
-    color: #c9ccd2;
+    color: #1a1712;
     font-size: 30px;
-    padding-top: 18px;
-    padding-bottom: 18px;
-    padding-left: 32px;
-    padding-right: 32px;
-    border-radius: 40px;
-    border-width: 2px;
-    border-color: #4a4e56;
-    cursor: pointer;
-  }
-
-  .ghost:hover {
-    border-color: #c9ccd2;
+    text-align: center;
   }
 </style>
-<Panel class="root">
-  <span id="pause-title" class="title">Paused</span>
-  <span id="pause-time" class="time">3:12</span>
-  <div class="actions">
-    <span id="resume" class="primary">Resume</span>
-    <span id="end" class="ghost">End session</span>
+<div class="root">
+  <div id="pause-btn" class="btn">
+    <span id="pause-label" class="label">Pause</span>
+    <span id="pause-time" class="time">3:12</span>
   </div>
-</Panel>
+  <span id="pause-sign" class="sign">Raise your palm to open the menu</span>
+</div>

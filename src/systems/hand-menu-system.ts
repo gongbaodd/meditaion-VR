@@ -23,13 +23,13 @@ const J_MIDDLE_META = 10;
 const J_PINKY_META = 20;
 
 /** Panel width / 2 in metres, plus a gap so the panel clears the holding hand's own fingers. */
-const HALF_WIDTH: Record<Kind, number> = { menu: 0.11, hud: 0.06, hub: 0.11 };
+const HALF_WIDTH: Record<Kind, number> = { menu: 0.11, hud: 0.09, hub: 0.11 };
 const SIDE_GAP = 0.08;
 /** Panel is nudged towards the head so it never sinks into the hand. */
 const TOWARD_HEAD = 0.03;
 const CONTROLLER_LIFT = 0.08;
-/** Seconds the open condition must hold: short in the menu, long during a session (hands rest palm-up). */
-const DWELL: Record<Kind, number> = { menu: 0.15, hud: 0.6, hub: 0.15 };
+/** Seconds the open condition must hold before a panel opens. */
+const DWELL: Record<Kind, number> = { menu: 0.15, hud: 0.15, hub: 0.15 };
 const FADE_IN = 0.15;
 const FADE_OUT = 0.25;
 /** Position/rotation smoothing, per second (about a 12 Hz cut-off). */
@@ -49,7 +49,8 @@ interface Slot {
 }
 
 /**
- * Puts the menu (mode `menu`) and the session HUD (mode `running`) beside a raised hand.
+ * Puts the menu (mode `menu`) and the paused-session controls (mode `paused`) beside a raised hand.
+ * Nothing opens on the hand while a session runs, so resting palms never bring up a panel.
  * The panel opens when a palm faces you and you look at it, follows that hand, and closes when
  * you lower it. With controllers it sits above the raised controller instead.
  * Labels, clicks and text are owned by VRUISystem.
@@ -98,7 +99,7 @@ export class HandMenuSystem extends createSystem({}) {
         ? 'hub'
         : s.mode === 'menu'
           ? 'menu'
-          : s.mode === 'running'
+          : s.mode === 'paused'
             ? 'hud'
             : null;
 
