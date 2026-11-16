@@ -433,6 +433,81 @@
       }
     },
     {
+      "id": "vr-hand-menu",
+      "name": "Hand Menu",
+      "content": {
+        "type": "asset",
+        "asset": "hand-menu-panel"
+      },
+      "transform": {
+        "position": [
+          0,
+          -50,
+          0
+        ],
+        "scale": 0.05
+      },
+      "components": {
+        "RayInteractable": {},
+        "PokeInteractable": {}
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "vr-hand-hub",
+      "name": "Hand Hub",
+      "content": {
+        "type": "asset",
+        "asset": "hand-hub-panel"
+      },
+      "transform": {
+        "position": [
+          0,
+          -50,
+          0
+        ],
+        "scale": 0.05
+      },
+      "components": {
+        "RayInteractable": {},
+        "PokeInteractable": {}
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
+      "id": "vr-hand-hud",
+      "name": "Hand HUD",
+      "content": {
+        "type": "asset",
+        "asset": "hand-hud-panel"
+      },
+      "transform": {
+        "position": [
+          0,
+          -50,
+          0
+        ],
+        "scale": 0.05
+      },
+      "components": {
+        "RayInteractable": {},
+        "PokeInteractable": {}
+      },
+      "metadata": {
+        "iwsdk.validation": {
+          "allowFloating": true
+        }
+      }
+    },
+    {
       "id": "vr-cue",
       "name": "Cue Caption",
       "content": {
@@ -446,30 +521,6 @@
           0
         ],
         "scale": 0.1
-      },
-      "metadata": {
-        "iwsdk.validation": {
-          "allowFloating": true
-        }
-      }
-    },
-    {
-      "id": "vr-hud",
-      "name": "Session HUD",
-      "content": {
-        "type": "asset",
-        "asset": "hud-panel"
-      },
-      "transform": {
-        "position": [
-          0,
-          -50,
-          0
-        ],
-        "scale": 0.07
-      },
-      "components": {
-        "RayInteractable": {}
       },
       "metadata": {
         "iwsdk.validation": {

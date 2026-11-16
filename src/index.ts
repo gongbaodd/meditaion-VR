@@ -2,6 +2,7 @@ import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { store } from './app.js';
 import { BreathOrbSystem } from './systems/breath-orb-system.js';
+import { HandMenuSystem } from './systems/hand-menu-system.js';
 import { HubSystem } from './systems/hub-system.js';
 import { GroundSystem } from './systems/ground-system.js';
 import { LookSystem } from './systems/look-system.js';
@@ -24,6 +25,7 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(BreathOrbSystem);
   world.registerSystem(SessionSystem);
   world.registerSystem(VRUISystem);
+  world.registerSystem(HandMenuSystem);
   world.registerSystem(HubSystem);
   world.registerSystem(LookSystem);
 

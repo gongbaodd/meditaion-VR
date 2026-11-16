@@ -1,0 +1,109 @@
+<!--
+  Hand menu for the hub: turns the ring one place at a time, enters the front place, exits VR.
+  Same size and styling as hand-menu.uikitml (see src/systems/hand-menu-system.ts). Ids: hb-*.
+-->
+<style>
+  .root {
+    flex-direction: column;
+    width: 440px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 14px;
+    border-radius: 36px;
+    border-width: 2px;
+    border-color: #3a3d43;
+    background-color: #15171a;
+  }
+
+  .row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step {
+    width: 76px;
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    background-color: #24272c;
+    color: #eceef1;
+    font-size: 36px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .step:hover {
+    border-color: #f1d9a8;
+  }
+
+  .val {
+    flex-grow: 1;
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38px;
+    background-color: #24272c;
+    color: #eceef1;
+    font-size: 30px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .primary {
+    height: 84px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 42px;
+    background-color: #f1d9a8;
+    color: #1a1712;
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .foot {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .ghost {
+    flex-grow: 1;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    color: #c9ccd2;
+    font-size: 22px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #c9ccd2;
+  }
+</style>
+<div class="root">
+  <div class="row">
+    <span id="hb-prev" class="step">&lt;</span>
+    <span id="hb-val" class="val">Mountain Dawn</span>
+    <span id="hb-next" class="step">&gt;</span>
+  </div>
+  <span id="hb-enter" class="primary">Enter</span>
+  <div class="foot">
+    <span id="hb-lang" class="ghost">中文</span>
+    <span id="hb-exit" class="ghost">Exit VR</span>
+  </div>
+</div>

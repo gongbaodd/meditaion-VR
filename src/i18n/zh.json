@@ -28,6 +28,8 @@
   "ui.language": "English",
   "ui.disclaimer": "用于放松与正念练习，不能替代医疗。",
   "ui.hint.pause": "按扳机键或捏合手指可暂停",
+  "ui.enter": "进入",
+  "ui.handHint": "掌心朝向自己，打开菜单",
   "ui.pattern": "呼吸节奏",
   "ui.interval": "间隔钟声",
   "ui.interval.off": "关闭",
@@ -91,7 +93,7 @@
   "metta.who.all": "一切众生",
   "cue.close.widen": "让注意力扩展开来，整个身体，整个空间。",
   "cue.close.return": "准备好后，深吸一口气，慢慢回来。",
-  "hub.hint": "转动旋钮，选择一扇窗进入。",
+  "hub.hint": "转动旋钮，或抬起手掌打开菜单，选择一扇窗进入。",
   "ui.changePlace": "更换地点",
   "hub.hintDesktop": "拖动旋钮或使用方向键转动，点击正中的窗进入。"
 }

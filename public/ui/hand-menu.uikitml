@@ -1,0 +1,121 @@
+<!--
+  Hand menu: a compact chooser that sits beside the raised palm (see src/systems/hand-menu-system.ts).
+  1 unit = 1 cm before the node scale; the scene node scales it to ~22 cm wide. Rows are 38 mm tall so a fingertip can hit them.
+  Ids: hm-<row>-prev / hm-<row>-val / hm-<row>-next for practice, len, amb; hm-begin; hm-place, hm-lang, hm-exit.
+-->
+<style>
+  .root {
+    flex-direction: column;
+    width: 440px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 14px;
+    border-radius: 36px;
+    border-width: 2px;
+    border-color: #3a3d43;
+    background-color: #15171a;
+  }
+
+  .row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step {
+    width: 76px;
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    background-color: #24272c;
+    color: #eceef1;
+    font-size: 36px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .step:hover {
+    border-color: #f1d9a8;
+  }
+
+  .val {
+    flex-grow: 1;
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 38px;
+    background-color: #24272c;
+    color: #eceef1;
+    font-size: 30px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .primary {
+    height: 84px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 42px;
+    background-color: #f1d9a8;
+    color: #1a1712;
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .primary:hover {
+    background-color: #ffe9bf;
+  }
+
+  .foot {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .ghost {
+    flex-grow: 1;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: #4a4e56;
+    color: #c9ccd2;
+    font-size: 22px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .ghost:hover {
+    border-color: #c9ccd2;
+  }
+</style>
+<div class="root">
+  <div class="row">
+    <span id="hm-practice-prev" class="step">&lt;</span>
+    <span id="hm-practice-val" class="val">Breathing</span>
+    <span id="hm-practice-next" class="step">&gt;</span>
+  </div>
+  <div class="row">
+    <span id="hm-len-prev" class="step">&lt;</span>
+    <span id="hm-len-val" class="val">5 min</span>
+    <span id="hm-len-next" class="step">&gt;</span>
+  </div>
+  <div class="row">
+    <span id="hm-amb-prev" class="step">&lt;</span>
+    <span id="hm-amb-val" class="val">Rain</span>
+    <span id="hm-amb-next" class="step">&gt;</span>
+  </div>
+  <span id="hm-begin" class="primary">Begin</span>
+  <div class="foot">
+    <span id="hm-place" class="ghost">Change place</span>
+    <span id="hm-lang" class="ghost">中文</span>
+    <span id="hm-exit" class="ghost">Exit VR</span>
+  </div>
+</div>

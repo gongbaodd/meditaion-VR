@@ -19,7 +19,9 @@ const uikitml = (fileName: string, name: string) => ({
 export default defineAssets({
   'menu-panel': uikitml('menu.uikitml', 'Menu Panel'),
   'cue-panel': uikitml('cue.uikitml', 'Cue Caption'),
-  'hud-panel': uikitml('hud.uikitml', 'Session HUD'),
+  'hand-menu-panel': uikitml('hand-menu.uikitml', 'Hand Menu'),
+  'hand-hub-panel': uikitml('hand-hub.uikitml', 'Hand Hub'),
+  'hand-hud-panel': uikitml('hand-hud.uikitml', 'Hand HUD'),
   'pause-panel': uikitml('pause.uikitml', 'Pause Panel'),
   'summary-panel': uikitml('summary.uikitml', 'Summary Panel'),
   'place-window': placeWindow,

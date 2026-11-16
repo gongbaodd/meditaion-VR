@@ -28,6 +28,8 @@
   "ui.language": "中文",
   "ui.disclaimer": "For relaxation and mindfulness practice. Not a medical treatment.",
   "ui.hint.pause": "Press trigger or pinch to pause",
+  "ui.enter": "Enter",
+  "ui.handHint": "Look at your palm to open the menu",
   "ui.pattern": "Breath pattern",
   "ui.interval": "Interval bell",
   "ui.interval.off": "Off",
@@ -91,7 +93,7 @@
   "metta.who.all": "all beings",
   "cue.close.widen": "Let attention widen. The whole body. The whole space around you.",
   "cue.close.return": "When you're ready, take a deeper breath and gently return.",
-  "hub.hint": "Turn the dial. Select a window to enter.",
+  "hub.hint": "Turn the dial, or raise your palm for the menu. Select a window to enter.",
   "ui.changePlace": "Change place",
   "hub.hintDesktop": "Drag the dial or use the arrow keys to turn. Click the front window to enter."
 }

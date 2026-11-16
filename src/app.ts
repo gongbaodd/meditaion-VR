@@ -45,5 +45,9 @@ export const actions = {
   end: () => {},
   backToMenu: () => {},
   openHub: () => {},
+  /** Hub: turn the ring one place (hand menu stepper). */
+  stepHub: (_d: 1 | -1) => {},
+  /** Hub: enter the place in front. */
+  enterHub: () => {},
   exitVR: () => {},
 };

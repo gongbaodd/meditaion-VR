@@ -14,12 +14,13 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import { actions, audio, publicUrl, store } from '../app.js';
-import { COUNT, type DeckSlot, deckSlot, detentOffset, KNOB_DEG_PER_DETENT, type Spring, stepSpring, stepTarget, wrapPi } from '../hub/ring.js';
+import { COUNT, type DeckSlot, mod, deckSlot, detentOffset, KNOB_DEG_PER_DETENT, type Spring, stepSpring, stepTarget, wrapPi } from '../hub/ring.js';
 import { makePaneMaterial } from '../hub/window-material.js';
 import { getLang, onLangChange, t } from '../i18n/index.js';
 import { PLACES } from '../state.js';
 import { vrFontFamilies } from '../ui/vr-font.js';
 import { PlaceSystem } from './place-system.js';
+import { VRUISystem } from './vr-ui-system.js';
 
 const D2R = Math.PI / 180;
 /** The front window's name sits this far toward the player from the window, and this high. */
@@ -216,6 +217,8 @@ export class HubSystem extends createSystem({}) {
     });
 
     actions.openHub = () => this.openHub();
+    actions.stepHub = (d) => this.step(d);
+    actions.enterHub = () => this.enter(this.frontIndex());
 
     // Desktop: drag the dial sideways, arrow keys or mouse wheel step the ring.
     const canvas = this.world.renderer.domElement;
@@ -250,6 +253,7 @@ export class HubSystem extends createSystem({}) {
     this.view.v = 0;
     this.lastDetent = this.target;
     this.ready = true;
+    this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
     this.setShown(false);
     if (store.get().mode === 'hub') this.world.getSystem(PlaceSystem)?.setLevel(0, 0);
   }
@@ -281,6 +285,7 @@ export class HubSystem extends createSystem({}) {
     this.view.v = 0;
     this.lastDetent = this.value;
     this.world.getSystem(PlaceSystem)?.setLevel(0, 0.5);
+    this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
     store.set({ mode: 'hub' });
   }
 
@@ -438,6 +443,7 @@ export class HubSystem extends createSystem({}) {
     if (this.target !== this.lastDetent) {
       this.lastDetent = this.target;
       audio.tick();
+      this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
     }
     stepSpring(this.view, this.target, STEP_TIME, Math.min(delta, MAX_DT));
 
@@ -462,6 +468,11 @@ export class HubSystem extends createSystem({}) {
     }
     const scale = this.dragging ? 1.25 : this.hovering ? 1.15 : 1;
     this.handleMesh?.scale.setScalar(scale);
+  }
+
+  /** Index of the place whose window the ring is heading for. */
+  private frontIndex() {
+    return mod(Math.round(this.target));
   }
 
   private step(d: number) {

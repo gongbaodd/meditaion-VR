@@ -1,0 +1,37 @@
+<!-- Session HUD shown beside the raised palm while a session runs. Scene node scales it to ~12 cm wide. -->
+<style>
+  .hud {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 240px;
+    height: 80px;
+    gap: 12px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-radius: 40px;
+    border-width: 2px;
+    border-color: #3a3d43;
+    background-color: #15171a;
+    cursor: pointer;
+  }
+
+  .hud:hover {
+    border-color: #c9ccd2;
+  }
+
+  .time {
+    color: #c9ccd2;
+    font-size: 28px;
+  }
+
+  .pause {
+    color: #eceef1;
+    font-size: 28px;
+    font-weight: bold;
+  }
+</style>
+<div id="hh" class="hud">
+  <span id="hh-pause" class="pause">Pause</span>
+  <span id="hh-time" class="time">5:00</span>
+</div>

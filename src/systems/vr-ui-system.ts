@@ -2,23 +2,27 @@ import { createSystem, type UIKit, type UIKitMLAsset } from '@iwsdk/core';
 import { actions, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
 import { getLang, onLangChange, t } from '../i18n/index.js';
-import { type AppState, LENGTHS, PRACTICES } from '../state.js';
+import { cycle } from '../hand/palm.js';
+import { type AppState, LENGTHS, PLACES, PRACTICES } from '../state.js';
 import { stats } from '../storage.js';
 import { vrFontFamilies } from '../ui/vr-font.js';
 import { placeInFront } from './placement.js';
 import { SessionSystem } from './session-system.js';
 
-type PanelId = 'vr-menu' | 'vr-cue' | 'vr-hud' | 'vr-pause' | 'vr-summary';
-const PANELS: PanelId[] = ['vr-menu', 'vr-cue', 'vr-hud', 'vr-pause', 'vr-summary'];
+type PlacedId = 'vr-menu' | 'vr-cue' | 'vr-pause' | 'vr-summary';
+type PanelId = PlacedId | 'vr-hand-menu' | 'vr-hand-hud' | 'vr-hand-hub';
+/** Panels this system places in front of the viewer. */
+const PANELS: PlacedId[] = ['vr-menu', 'vr-cue', 'vr-pause', 'vr-summary'];
+/** Panels that ride on a raised hand; HandMenuSystem places and shows them, this system wires and labels them. */
+const HAND_PANELS: PanelId[] = ['vr-hand-menu', 'vr-hand-hud', 'vr-hand-hub'];
 
 const SELECTED = { backgroundColor: '#f1d9a8', color: '#1a1712', borderColor: '#f1d9a8' };
 const UNSELECTED = { backgroundColor: '#24272c', color: '#eceef1', borderColor: '#4a4e56' };
 
 /** Where each panel sits relative to the viewer: distance, height offset, pitch. */
-const LAYOUT: Record<PanelId, [number, number, number]> = {
+const LAYOUT: Record<PlacedId, [number, number, number]> = {
   'vr-menu': [1.2, -0.2, -10],
   'vr-cue': [1.5, -0.5, -14],
-  'vr-hud': [1.1, -0.62, -40],
   'vr-pause': [1.1, -0.15, -8],
   'vr-summary': [1.2, -0.15, -8],
 };
@@ -28,14 +32,16 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).p
 /**
  * Spatial UI for immersive mode. Panels are declared in the scene JSON; this
  * system wires clicks, fills translated labels, and shows the right panel for
- * the current mode, placed in front of wherever the viewer is looking.
+ * the current mode, placed in front of wherever the viewer is looking. The menu and
+ * the session HUD live on a raised hand instead (HandMenuSystem); the in-front menu
+ * only returns as a fallback when no hand or controller is tracked.
  */
 export class VRUISystem extends createSystem({}) {
   private panels = new Map<PanelId, UIKitMLAsset>();
   private shown = new Set<PanelId>();
 
   init(): void {
-    for (const id of PANELS) {
+    for (const id of [...PANELS, ...HAND_PANELS]) {
       const p = this.world.getSceneObject<UIKitMLAsset>(id);
       if (!p) {
         console.warn(`[vr-ui] missing scene panel ${id}`);
@@ -56,6 +62,39 @@ export class VRUISystem extends createSystem({}) {
         this.render(store.get(), null);
       }),
     );
+  }
+
+  /** True when the hand menu can't be used (nothing tracked), so the menu is shown in front instead. */
+  private fallback = false;
+  /** The first-use hint "look at your palm" is shown until the hand menu has opened once. */
+  private hintDone = false;
+
+  get fallbackActive() {
+    return this.fallback;
+  }
+
+  setFallback(on: boolean) {
+    if (on === this.fallback) return;
+    this.fallback = on;
+    this.render(store.get(), store.get());
+  }
+
+  private hubPlace = 0;
+
+  /** Place under the hub dial; shown on the hand panel's stepper. */
+  setHubPlace(i: number) {
+    this.hubPlace = i;
+    this.showHubPlace();
+  }
+
+  private showHubPlace() {
+    this.el('vr-hand-hub', 'hb-val')?.setProperties({ text: PLACES[this.hubPlace]?.name[getLang()] ?? '' });
+  }
+
+  dismissHint() {
+    if (this.hintDone) return;
+    this.hintDone = true;
+    this.render(store.get(), store.get());
   }
 
   private el(panel: PanelId, id: string): UIKit.Text | undefined {
@@ -86,7 +125,27 @@ export class VRUISystem extends createSystem({}) {
     this.on('vr-menu', 'begin', () => actions.begin({ vr: true }));
     this.on('vr-menu', 'lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-menu', 'exit', () => actions.exitVR());
-    this.on('vr-hud', 'hud', () => actions.pause());
+    this.on('vr-hand-hud', 'hh', () => actions.pause());
+    // Hand menu: ‹ value › steppers, same effects as the chips on the in-front menu.
+    const step = (id: string, apply: (d: 1 | -1) => void) => {
+      this.on('vr-hand-menu', `hm-${id}-prev`, () => apply(-1));
+      this.on('vr-hand-menu', `hm-${id}-next`, () => apply(1));
+      this.on('vr-hand-menu', `hm-${id}-val`, () => apply(1));
+    };
+    step('practice', (d) => store.setPrefs({ practice: cycle(PRACTICES, store.get().prefs.practice, d) }));
+    step('len', (d) => store.setPrefs({ minutes: cycle(LENGTHS, store.get().prefs.minutes, d) }));
+    step('amb', (d) => store.setPrefs({ ambient: cycle(AMBIENTS, store.get().prefs.ambient, d) }));
+    // Hand hub panel: turn the ring one place at a time, enter the front place, exit.
+    this.on('vr-hand-hub', 'hb-prev', () => actions.stepHub(-1));
+    this.on('vr-hand-hub', 'hb-next', () => actions.stepHub(1));
+    this.on('vr-hand-hub', 'hb-val', () => actions.stepHub(1));
+    this.on('vr-hand-hub', 'hb-enter', () => actions.enterHub());
+    this.on('vr-hand-hub', 'hb-lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
+    this.on('vr-hand-hub', 'hb-exit', () => actions.exitVR());
+    this.on('vr-hand-menu', 'hm-begin', () => actions.begin({ vr: true }));
+    this.on('vr-hand-menu', 'hm-place', () => actions.openHub());
+    this.on('vr-hand-menu', 'hm-lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
+    this.on('vr-hand-menu', 'hm-exit', () => actions.exitVR());
     this.on('vr-pause', 'resume', () => actions.resume());
     this.on('vr-pause', 'end', () => actions.end());
     this.on('vr-summary', 'again', () => actions.begin({ vr: true }));
@@ -109,7 +168,15 @@ export class VRUISystem extends createSystem({}) {
     set('vr-menu', 'begin', t('ui.begin'));
     set('vr-menu', 'lang', t('ui.language'));
     set('vr-menu', 'exit', t('ui.exitVR'));
-    set('vr-hud', 'hud-pause', t('ui.pause'));
+    set('vr-hand-menu', 'hm-begin', t('ui.begin'));
+    set('vr-hand-menu', 'hm-place', t('ui.changePlace'));
+    set('vr-hand-menu', 'hm-lang', t('ui.language'));
+    set('vr-hand-menu', 'hm-exit', t('ui.exitVR'));
+    set('vr-hand-hub', 'hb-enter', t('ui.enter'));
+    set('vr-hand-hub', 'hb-lang', t('ui.language'));
+    set('vr-hand-hub', 'hb-exit', t('ui.exitVR'));
+    this.showHubPlace();
+    set('vr-hand-hud', 'hh-pause', t('ui.pause'));
     set('vr-pause', 'pause-title', t('ui.paused'));
     set('vr-pause', 'resume', t('ui.resume'));
     set('vr-pause', 'end', t('ui.end'));
@@ -127,19 +194,25 @@ export class VRUISystem extends createSystem({}) {
       for (const x of PRACTICES) mark(`practice-${x}`, x === p.practice);
       for (const x of LENGTHS) mark(`len-${x}`, x === p.minutes);
       for (const x of AMBIENTS) mark(`amb-${x}`, x === p.ambient);
+      const val = (id: string, text: string) => this.el('vr-hand-menu', id)?.setProperties({ text });
+      val('hm-practice-val', t(`practice.${p.practice}`));
+      val('hm-len-val', `${p.minutes} ${t('ui.min')}`);
+      val('hm-amb-val', t(`ambient.${p.ambient}`));
     }
 
     if (!s.immersive) {
       PANELS.forEach((id) => this.hide(id));
+      HAND_PANELS.forEach((id) => this.hide(id));
       return;
     }
 
     const want = new Set<PanelId>();
-    if (s.mode === 'menu') want.add('vr-menu');
-    if (s.mode === 'running') {
-      want.add('vr-hud');
-      if (s.cue) want.add('vr-cue');
+    const hint = s.mode === 'menu' && !this.fallback && !this.hintDone;
+    if (s.mode === 'menu') {
+      if (this.fallback) want.add('vr-menu');
+      else if (hint) want.add('vr-cue');
     }
+    if (s.mode === 'running' && s.cue) want.add('vr-cue');
     if (s.mode === 'paused') want.add('vr-pause');
     if (s.mode === 'summary') want.add('vr-summary');
 
@@ -148,12 +221,15 @@ export class VRUISystem extends createSystem({}) {
     for (const id of PANELS) {
       if (!want.has(id)) this.hide(id);
       // Re-anchor on mode changes so the panel appears wherever the viewer now faces.
-      else if (!this.shown.has(id) || (modeChanged && id !== 'vr-cue' && id !== 'vr-hud')) this.show(id);
+      else if (!this.shown.has(id) || (modeChanged && id !== 'vr-cue')) this.show(id);
     }
 
-    if (s.cue && (!prev || s.cue !== prev.cue)) this.el('vr-cue', 'cue-text')?.setProperties({ text: s.cue });
+    if (hint) this.el('vr-cue', 'cue-text')?.setProperties({ text: t('ui.handHint') });
+    else if (s.cue && (!prev || s.cue !== prev.cue || prev.mode === 'menu')) {
+      this.el('vr-cue', 'cue-text')?.setProperties({ text: s.cue });
+    }
     if (!prev || s.remaining !== prev.remaining) {
-      this.el('vr-hud', 'hud-time')?.setProperties({ text: fmt(s.remaining) });
+      this.el('vr-hand-hud', 'hh-time')?.setProperties({ text: fmt(s.remaining) });
       this.el('vr-pause', 'pause-time')?.setProperties({ text: fmt(s.remaining) });
     }
     if (s.mode === 'summary' && prev?.mode !== 'summary') {
@@ -172,11 +248,11 @@ export class VRUISystem extends createSystem({}) {
   update(): void {
     if (this.reanchorIn < 0) return;
     if (this.reanchorIn-- === 0) {
-      for (const id of [...this.shown]) this.show(id);
+      for (const id of PANELS) if (this.shown.has(id)) this.show(id);
     }
   }
 
-  private show(id: PanelId) {
+  private show(id: PlacedId) {
     const p = this.panels.get(id);
     if (!p) return;
     const [d, dy, pitch] = LAYOUT[id];
