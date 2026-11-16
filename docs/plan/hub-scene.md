@@ -1,6 +1,6 @@
 # Hub scene — plan
 
-_Written 2026-11-16. Status: **waiting for review**, nothing implemented yet._
+_Written 2026-11-16. Status: **implemented on branch `hub`** (H1–H7). Verified in the IWER emulator inside an XR session: hub → click front window → place + menu (no Place row) → **Change place** → hub. Typecheck, 58 tests and `npm run build` pass. Not yet tried on a real Quest: dial twist comfort, reach and text size. The dial is turned by a custom ray-on-plate drag (not IWSDK grab components), so `features.grabbing` stays `false`._
 
 Replace the first thing you see in VR (today: a flat menu panel floating inside the last-used place)
 with a dark "hub": a ring of arched windows, one per place, and a dial in front of you that turns

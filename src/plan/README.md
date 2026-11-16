@@ -14,6 +14,7 @@ Verified in the IWSDK managed browser and the IWER Quest 3 emulator. **Not yet t
 | M2 Sound | ✅ Web Audio engine, synthesized bowls + 5 ambiences; optional Freesound CC0 pipeline; credits check |
 | M3 Session | ✅ data-driven timeline + runner (52 unit tests), breathing orb, pause / resume / end, history |
 | M4 Menu | ✅ 2D overlay and VR UIKitML panels; prefs persist |
+| M6 Hub | ✅ VR hub: ring of place windows + dial, **Change place** in the menu (see `docs/plan/hub-scene.md`). Emulator-verified only |
 | M5 Ship | ◐ desktop fallback, EN + 中文 (VR too), credits page, GitHub Pages workflow. Not deployed: no remote yet |
 
 **Spike answers**
