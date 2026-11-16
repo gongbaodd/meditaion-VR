@@ -84,6 +84,8 @@ export class HubSystem extends createSystem({}) {
   private ready = false;
   private dragging = false;
   private dragHand: 'left' | 'right' = 'right';
+  /** The pointer and object holding pointer capture for the current drag, so the ray stays on the dial. */
+  private capture: { obj: Object3D; id: number } | null = null;
   /** Plate angle (radians, atan2(x, z) in the dial head's frame) of the ray hit last frame. */
   private lastAng = 0;
   private stickLatched = false;
@@ -180,6 +182,26 @@ export class HubSystem extends createSystem({}) {
       dial.removeEventListener('pointerdown', down as never);
       dial.removeEventListener('pointerup', upEv as never);
       dial.removeEventListener('pointercancel', upEv as never);
+    });
+
+    // In VR the ray usually leaves the dial while dragging; end the drag on the drag hand's
+    // select release wherever it points, so letting go always lets go.
+    const xr = this.world.renderer.xr;
+    const selectEnd = (e: XRInputSourceEvent) => {
+      if (this.dragging && e.inputSource.handedness === this.dragHand) this.endDrag();
+    };
+    const onSession = () => xr.getSession()?.addEventListener('selectend', selectEnd);
+    const offSession = () => {
+      xr.getSession()?.removeEventListener('selectend', selectEnd);
+      this.endDrag();
+    };
+    xr.addEventListener('sessionstart', onSession);
+    xr.addEventListener('sessionend', offSession);
+    onSession();
+    this.cleanupFuncs.push(() => {
+      xr.removeEventListener('sessionstart', onSession);
+      xr.removeEventListener('sessionend', offSession);
+      xr.getSession()?.removeEventListener('selectend', selectEnd);
     });
 
     actions.openHub = () => this.openHub();
@@ -290,15 +312,26 @@ export class HubSystem extends createSystem({}) {
         bestAng = ang;
       }
     }
-    void e;
     if (!best) return;
     this.dragHand = best;
     this.dragging = true;
     this.snap = null;
     this.lastAng = bestAng;
+    // Capture the pointer: while held, the ray only intersects the dial (no hover/clicks on
+    // the windows behind it) and its release is delivered here even if the ray drifts off.
+    const ev = e as { pointerId?: number; target?: Object3D };
+    if (ev.target && typeof ev.pointerId === 'number') {
+      ev.target.setPointerCapture(ev.pointerId);
+      this.capture = { obj: ev.target, id: ev.pointerId };
+    }
   }
 
   private endDrag() {
+    if (this.capture) {
+      const { obj, id } = this.capture;
+      this.capture = null;
+      if (obj.hasPointerCapture(id)) obj.releasePointerCapture(id);
+    }
     if (!this.dragging) return;
     this.dragging = false;
     this.snap = Math.round(this.value);
