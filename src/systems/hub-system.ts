@@ -14,7 +14,7 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import { actions, audio, publicUrl, store } from '../app.js';
-import { COUNT, detentOffset, KNOB_DEG_PER_DETENT, ringXZ, STEP_DEG, windowAngleDeg, windowFade, windowGlow, wrapPi } from '../hub/ring.js';
+import { COUNT, type DeckSlot, deckSlot, detentOffset, KNOB_DEG_PER_DETENT, type Spring, stepSpring, stepTarget, wrapPi } from '../hub/ring.js';
 import { makePaneMaterial } from '../hub/window-material.js';
 import { getLang, onLangChange, t } from '../i18n/index.js';
 import { PLACES } from '../state.js';
@@ -22,9 +22,13 @@ import { vrFontFamilies } from '../ui/vr-font.js';
 import { PlaceSystem } from './place-system.js';
 
 const D2R = Math.PI / 180;
-const RING_R = 3;
-const LABEL_R = 2.6;
+/** The front window's name sits this far toward the player from the window, and this high. */
+const LABEL_NEAR = 0.4;
 const LABEL_Y = 0.2;
+/** Seconds the windows take to settle on a new place (critically damped, no overshoot). */
+const STEP_TIME = 0.16;
+/** Longest frame the eased step will integrate, so a hitch cannot make it jump. */
+const MAX_DT = 0.05;
 const LABEL_SCALE = 0.1;
 const PARKED_Y = -50;
 
@@ -48,6 +52,7 @@ const GRAB_RADIUS = 0.06;
 const HANDLE_IDLE = 0x8a90a0;
 const HANDLE_HOVER = 0xe8eaf0;
 
+const slotTmp: DeckSlot = { x: 0, depth: 0, fade: 0, glow: 0 };
 const tmpQ = new Quaternion();
 const aim = new Vector3();
 const plateN = new Vector3();
@@ -59,8 +64,10 @@ const hexColor = new Color();
 const handleColor = new Color();
 
 /**
- * The VR hub: a ring of arched place windows and a dial that turns it.
- * `value` is the continuous dial position in detents; window i is dead ahead at value = i.
+ * The VR hub: a stack of arched place windows and a dial that changes which one is in front.
+ * `value` is the continuous knob position in detents; window i is dead ahead at value = i.
+ * The windows do not follow the knob directly: `target` is the detent they should show and
+ * `view` chases it with an eased spring, so one step is a short calm move whatever the hand does.
  * Press the handle on the dial's rim (ray trigger or hand pinch) and drag it around the plate:
  * the handle follows where the ray crosses the plate. On release it eases to the nearest
  * detent. Thumbstick left/right steps one place; selecting
@@ -78,6 +85,10 @@ export class HubSystem extends createSystem({}) {
   private title!: UIKitMLAsset;
   private floor!: Object3D;
   private value = 0;
+  /** Detent the windows are heading for (unwrapped, like `value`). */
+  private target = 0;
+  /** Eased window position in detents; `x` is what the layout reads. */
+  private view: Spring = { x: 0, v: 0 };
   private snap: number | null = null;
   private lastDetent = 0;
   private shown = false;
@@ -234,7 +245,10 @@ export class HubSystem extends createSystem({}) {
       store.subscribe((s, prev) => this.onStore(s, prev)),
     );
     this.value = Math.max(0, PLACES.findIndex((p) => p.id === store.get().prefs.place));
-    this.lastDetent = Math.round(this.value);
+    this.target = Math.round(this.value);
+    this.view.x = this.target;
+    this.view.v = 0;
+    this.lastDetent = this.target;
     this.ready = true;
     this.setShown(false);
     if (store.get().mode === 'hub') this.world.getSystem(PlaceSystem)?.setLevel(0, 0);
@@ -262,6 +276,10 @@ export class HubSystem extends createSystem({}) {
     const i = PLACES.findIndex((p) => p.id === store.get().prefs.place);
     this.value = Math.round(this.value) + detentOffset(Math.max(0, i), Math.round(this.value));
     this.snap = this.value;
+    this.target = this.value;
+    this.view.x = this.value;
+    this.view.v = 0;
+    this.lastDetent = this.value;
     this.world.getSystem(PlaceSystem)?.setLevel(0, 0.5);
     store.set({ mode: 'hub' });
   }
@@ -276,12 +294,10 @@ export class HubSystem extends createSystem({}) {
   private onWindowClick(i: number) {
     if (!this.shown || this.dragging) return;
     void audio.unlock();
-    const a = windowAngleDeg(i, this.value);
-    if (Math.abs(a) < STEP_DEG / 2) {
+    if (Math.abs(detentOffset(i, this.view.x)) < 0.5) {
       this.enter(i);
     } else {
-      const base = Math.round(this.value);
-      this.snap = base + detentOffset(i, base);
+      this.snap = this.target + detentOffset(i, this.target);
     }
   }
 
@@ -334,7 +350,7 @@ export class HubSystem extends createSystem({}) {
     }
     if (!this.dragging) return;
     this.dragging = false;
-    this.snap = Math.round(this.value);
+    this.snap = this.target;
   }
 
   /**
@@ -416,14 +432,17 @@ export class HubSystem extends createSystem({}) {
       }
     }
 
-    const det = Math.round(this.value);
-    if (det !== this.lastDetent) {
-      this.lastDetent = det;
+    // The windows only change place once the knob is clearly past halfway, then ease there.
+    if (this.dragging) this.target = stepTarget(this.value, this.target);
+    else if (this.snap !== null) this.target = this.snap;
+    if (this.target !== this.lastDetent) {
+      this.lastDetent = this.target;
       audio.tick();
     }
+    stepSpring(this.view, this.target, STEP_TIME, Math.min(delta, MAX_DT));
 
     if (this.knob) this.knob.rotation.y = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
-    this.styleHandle(det);
+    this.styleHandle(this.target);
 
     for (let i = 0; i < COUNT; i++) this.layout(i);
   }
@@ -446,7 +465,7 @@ export class HubSystem extends createSystem({}) {
   }
 
   private step(d: number) {
-    this.snap = (this.snap ?? Math.round(this.value)) + d;
+    this.snap = (this.snap ?? this.target) + d;
   }
 
   private stickStep() {
@@ -463,35 +482,39 @@ export class HubSystem extends createSystem({}) {
     if (Math.abs(x) < 0.4) this.stickLatched = false;
     else if (!this.stickLatched && Math.abs(x) > 0.7) {
       this.stickLatched = true;
-      this.snap = (this.snap ?? Math.round(this.value)) + (x > 0 ? 1 : -1);
+      this.snap = (this.snap ?? this.target) + (x > 0 ? 1 : -1);
     }
   }
 
   private layout(i: number) {
     const w = this.wins[i];
     if (!w) return;
-    const a = windowAngleDeg(i, this.value);
-    const fade = windowFade(a);
-    const glow = windowGlow(a);
+    const { x, depth, fade, glow } = deckSlot(detentOffset(i, this.view.x), slotTmp);
     const on = fade > 0.02;
 
     w.obj.visible = on;
-    w.label.visible = on;
+    // Only the front window shows its name; it grows in as the window arrives.
+    const showLabel = glow > 0.05;
+    w.label.visible = on && showLabel;
     if (!on) {
       w.obj.position.y = PARKED_Y;
       w.label.position.y = PARKED_Y;
       return;
     }
-    const [x, z] = ringXZ(a, RING_R);
-    w.obj.position.set(x, 0, z);
-    w.obj.rotation.y = -a * D2R;
+    // Every window faces the player.
+    const yaw = -Math.atan2(x, depth);
+    w.obj.position.set(x, 0, -depth);
+    w.obj.rotation.y = yaw;
     // Don't let a nearly-invisible window catch rays.
     if (fade < 0.3) w.obj.position.y = PARKED_Y;
 
-    const [lx, lz] = ringXZ(a, LABEL_R);
-    w.label.position.set(lx, LABEL_Y, lz);
-    w.label.rotation.set(-0.35, -a * D2R, 0, 'YXZ');
-    w.label.scale.setScalar(LABEL_SCALE * (0.55 + 0.45 * fade) * (1 + 0.12 * glow));
+    if (showLabel) {
+      w.label.position.set(x, LABEL_Y, -depth + LABEL_NEAR);
+      w.label.rotation.set(-0.35, yaw, 0, 'YXZ');
+      w.label.scale.setScalar(LABEL_SCALE * glow);
+    } else {
+      w.label.position.y = PARKED_Y;
+    }
 
     if (w.paneMat) {
       w.paneMat.uniforms.uGlow.value = glow;
