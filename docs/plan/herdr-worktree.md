@@ -101,11 +101,12 @@ Then the goal, the steps, and how to check it is done.
 
 ## Current state (2026-11-16)
 
-| Checkout | Branch | Made with | What to do |
+| Checkout | Branch | Made with | State |
 |---|---|---|---|
-| `~/github/meditaion-VR/main` | `main` | — | keep |
-| `~/github/meditaion-VR/hub` | `hub` | `git worktree add` | an agent is working here with uncommitted changes. Leave it in place, finish and merge as above, then `git worktree remove ../hub` from `main`. |
-| — | `hand-menu`, `handmenu` | Herdr, worktrees already removed | leftover branches at the same commit as `main`. Delete the one that is not wanted, or reuse one through **New worktree…**. |
+| `~/github/meditaion-VR/main` | `main` | — | keep. Contains the merged hub work. |
+| `~/github/meditaion-VR/hub` | `hub` | `git worktree add` | merged into `main` (fast-forward). An agent terminal is still open in it. When it is closed, in Herdr use **Open worktree…** → `hub` → **Remove worktree**, then `git branch -d hub` in the main space. |
+
+`hand-menu` and `handmenu` were leftover Herdr branches and are deleted.
 
 New tasks use Herdr from now on. Nothing has to be moved.
 
