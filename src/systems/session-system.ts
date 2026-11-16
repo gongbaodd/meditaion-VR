@@ -1,6 +1,6 @@
 import { createSystem, VisibilityState } from '@iwsdk/core';
 import { actions, audio, store } from '../app.js';
-import { t } from '../i18n/index.js';
+import { t } from '../strings.js';
 import { SessionRunner } from '../session/runner.js';
 import { buildSession } from '../session/timeline.js';
 import type { Cue } from '../session/types.js';
@@ -15,7 +15,6 @@ import { PlaceSystem } from './place-system.js';
 export class SessionSystem extends createSystem({}) {
   private runner: SessionRunner | null = null;
   private cueTimer = 0;
-  private cueText: { key: string; vars?: Record<string, string> } | null = null;
   private lastRemaining = -1;
 
   private get place() {
@@ -95,7 +94,6 @@ export class SessionSystem extends createSystem({}) {
         audio.bell(c.bell, c.count);
         break;
       case 'text':
-        this.cueText = { key: c.key, vars: c.vars };
         this.cueTimer = c.hold;
         store.set({ cue: t(c.key, c.vars) });
         break;
@@ -129,17 +127,12 @@ export class SessionSystem extends createSystem({}) {
     this.lastSat = Math.max(1, sat);
     this.orb.setVisible(false);
     this.place.setLevel(1, 2);
-    this.cueText = null;
     store.set({ mode: 'summary', cue: '', remaining: 0 });
   }
 
   /** Minutes sat in the last finished session (for the summary). */
   lastSat = 0;
 
-  /** Re-translate the visible cue after a language switch. */
-  retranslate() {
-    if (this.cueText) store.set({ cue: t(this.cueText.key, this.cueText.vars) });
-  }
 
   update(delta: number): void {
     const r = this.runner;
@@ -161,7 +154,6 @@ export class SessionSystem extends createSystem({}) {
     if (this.cueTimer > 0) {
       this.cueTimer -= delta;
       if (this.cueTimer <= 0) {
-        this.cueText = null;
         store.set({ cue: '' });
       }
     }

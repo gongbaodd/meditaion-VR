@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import en from '../i18n/en.json';
-import zh from '../i18n/zh.json';
+import strings from '../strings.json';
 import { SessionRunner } from './runner.js';
 import { buildSession } from './timeline.js';
 import type { Cue, Minutes, PracticeId } from './types.js';
@@ -38,7 +37,7 @@ describe('buildSession', () => {
     }
   });
 
-  it.each(all)('%s %d min: every text key exists in en and zh', (p, m) => {
+  it.each(all)('%s %d min: every text key exists in strings.json', (p, m) => {
     const keys = new Set<string>();
     for (const c of buildSession(p, m).cues) {
       if (c.kind !== 'text') continue;
@@ -46,8 +45,7 @@ describe('buildSession', () => {
       for (const v of Object.values(c.vars ?? {})) keys.add(v);
     }
     for (const k of keys) {
-      expect(en, `en missing ${k}`).toHaveProperty([k]);
-      expect(zh, `zh missing ${k}`).toHaveProperty([k]);
+      expect(strings, `missing ${k}`).toHaveProperty([k]);
     }
   });
 

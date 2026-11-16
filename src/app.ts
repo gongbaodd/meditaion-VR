@@ -1,5 +1,4 @@
 import { AudioEngine } from './audio/engine.js';
-import { setLang } from './i18n/index.js';
 import { Store } from './state.js';
 import { loadPrefs, savePrefs } from './storage.js';
 
@@ -23,15 +22,13 @@ export const store = new Store({
 export const audio = new AudioEngine(BASE);
 audio.setAmbientVolume(prefs.ambientVolume);
 audio.setBellVolume(prefs.bellVolume);
-setLang(prefs.lang);
 
-// Persist prefs and keep side effects (language, audio levels, ambience) in sync.
+// Persist prefs and keep side effects (audio levels, ambience) in sync.
 store.subscribe((s, prev) => {
   if (s.prefs === prev.prefs) return;
   savePrefs(s.prefs);
   const p = s.prefs;
   const q = prev.prefs;
-  if (p.lang !== q.lang) setLang(p.lang);
   if (p.ambientVolume !== q.ambientVolume) audio.setAmbientVolume(p.ambientVolume);
   if (p.bellVolume !== q.bellVolume) audio.setBellVolume(p.bellVolume);
   if (p.ambient !== q.ambient) audio.setAmbient(p.ambient);

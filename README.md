@@ -9,7 +9,6 @@ or on any screen.
 - **3 / 5 / 10 / 20 minutes**, each built from the same arrive → settle → anchor → main → close structure.
 - **Sound**: singing bowls and rain / forest / waves / stream / night ambience, synthesized in the
   browser. They can optionally be swapped for CC0 recordings from Freesound.
-- **English and 中文**, in the page and in the VR panels.
 - No accounts and no backend. Preferences and history stay in `localStorage`.
 
 The design, research and roadmap are in [`src/plan/`](src/plan/README.md).

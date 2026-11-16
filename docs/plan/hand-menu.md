@@ -4,7 +4,7 @@ _Written 2026-11-16. Status: **implemented on branch `handmenu`** (M1–M4). Typ
 
 ## What differs from the plan below
 
-- **The hub has a hand menu too** (changed after the plan): `< place >` turns the ring one place per tap (same as the dial), **Enter** goes into the front place, plus language and **Exit VR**. Panel `public/ui/hand-hub.uikitml`, node `vr-hand-hub`. This replaces D3's "hub: no hand menu".
+- **The hub has a hand menu too** (changed after the plan): `< place >` turns the ring one place per tap (same as the dial), **Enter** goes into the front place, plus **Exit VR**. Panel `public/ui/hand-hub.uikitml`, node `vr-hand-hub`. This replaces D3's "hub: no hand menu".
 - **Pinky side is the inner side.** With the palm turned to your face the little finger points towards your nose, so the panel sits between the hand and the middle of your view. Left hand → panel to its right. Controllers follow the same side.
 - **Fade is a scale pop** (0.6 → 1 over 0.15 s), not an opacity fade, to avoid per-frame UIKit property writes.
 - **Own-hand guard is geometric**, not a click filter: the panel sits 8 cm clear of the palm edge, so the holding hand's fingers do not reach it (S2 not answered).
@@ -40,7 +40,7 @@ rules below are taken from the MRTK guidance:
 1. **In a place, choosing (mode `menu`).** No panel in front of you. A one-line hint floats low in
    front: "Look at your palm to open the menu". It goes away the first time the menu opens.
 2. **Raise either hand, palm toward your face.** A hand-sized panel fades in next to that hand and
-   follows it. It shows practice, length, sound and **Begin**, plus Change place / language / Exit VR.
+   follows it. It shows practice, length, sound and **Begin**, plus Change place / Exit VR.
 3. **Press with the other hand.** Either poke a button with your index finger, or point and pinch.
 4. **Lower the hand.** The panel fades out after a short delay.
 5. **During a session (mode `running`).** Same gesture shows a tiny panel: time left and **Pause**.
@@ -106,12 +106,12 @@ between devices. `world.input.isPrimary('hand', side)` says whether that side is
 | `src/hand/palm.ts` (new) | Pure math: palm frame from three joint positions; show/hide decision with hysteresis and dwell. |
 | `src/hand/palm.test.ts` (new) | Tests: faces head, faces away, palm-up on knee, edge hysteresis, tracking loss, dwell. |
 | `src/systems/hand-menu-system.ts` (new) | Reads palm/grip pose, runs `palm.ts`, picks the holding hand, places and fades `vr-hand-menu` / `vr-hand-hud`. No allocation in `update()`. |
-| `public/ui/hand-menu.uikitml` (new) | Compact chooser: 3 stepper rows, Begin, small row with Change place / language / Exit VR. |
+| `public/ui/hand-menu.uikitml` (new) | Compact chooser: 3 stepper rows, Begin, small row with Change place / Exit VR. |
 | `public/ui/hand-hud.uikitml` (new) | Time + Pause, sized for a fingertip. |
 | `src/assets.ts` | Register the two panels. |
 | `public/scenes/main.iwsdk.scene.json` | Add nodes `vr-hand-menu`, `vr-hand-hud` with `RayInteractable` **and** `PokeInteractable`. Keep `vr-menu` for the D6 fallback. Remove `vr-hud`. |
 | `src/systems/vr-ui-system.ts` | Wire and relabel the new panels. In XR, stop showing `vr-menu` (except D6) and `vr-hud`; leave their placement to `HandMenuSystem`. Add the hint text via `vr-cue`. |
-| `src/i18n/en.json`, `zh.json` | `ui.handHint`. |
+| `src/strings.json` | `ui.handHint`. |
 | `src/index.ts` | Register `HandMenuSystem` after `VRUISystem`. |
 
 `VRUISystem` keeps owning labels, clicks and selected state. `HandMenuSystem` only owns pose and

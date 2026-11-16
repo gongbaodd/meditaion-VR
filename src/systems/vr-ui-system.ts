@@ -1,7 +1,7 @@
 import { createSystem, type UIKit, type UIKitMLAsset } from '@iwsdk/core';
 import { actions, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
-import { getLang, onLangChange, t } from '../i18n/index.js';
+import { t } from '../strings.js';
 import { cycle } from '../hand/palm.js';
 import { type AppState, LENGTHS, PLACES, PRACTICES } from '../state.js';
 import { stats } from '../storage.js';
@@ -49,20 +49,14 @@ export class VRUISystem extends createSystem({}) {
         continue;
       }
       this.panels.set(id, p);
-      // CJK-capable font with a full charset (see src/ui/vr-font.ts).
+      // Font with a full charset (see src/ui/vr-font.ts).
       p.document.rootElement.setProperties({ fontFamilies: vrFontFamilies(), fontFamily: 'ui' } as never);
       this.hide(id);
     }
     this.wire();
     this.relabel();
     this.render(store.get(), null);
-    this.cleanupFuncs.push(
-      store.subscribe((s, prev) => this.render(s, prev)),
-      onLangChange(() => {
-        this.relabel();
-        this.render(store.get(), null);
-      }),
-    );
+    this.cleanupFuncs.push(store.subscribe((s, prev) => this.render(s, prev)));
   }
 
   /** True when the hand menu can't be used (nothing tracked), so the menu is shown in front instead. */
@@ -89,7 +83,7 @@ export class VRUISystem extends createSystem({}) {
   }
 
   private showHubPlace() {
-    this.el('vr-hand-hub', 'hb-val')?.setProperties({ text: PLACES[this.hubPlace]?.name[getLang()] ?? '' });
+    this.el('vr-hand-hub', 'hb-val')?.setProperties({ text: PLACES[this.hubPlace]?.name ?? '' });
   }
 
   dismissHint() {
@@ -124,7 +118,6 @@ export class VRUISystem extends createSystem({}) {
     for (const m of LENGTHS) this.on('vr-menu', `len-${m}`, () => store.setPrefs({ minutes: m }));
     for (const a of AMBIENTS) this.on('vr-menu', `amb-${a}`, () => store.setPrefs({ ambient: a }));
     this.on('vr-menu', 'begin', () => actions.begin({ vr: true }));
-    this.on('vr-menu', 'lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-menu', 'exit', () => actions.exitVR());
     // In-scene pause button: pauses while running; once paused, Resume/End are on the hand menu.
     this.on('vr-pause', 'pause-btn', () => {
@@ -146,19 +139,16 @@ export class VRUISystem extends createSystem({}) {
     this.on('vr-hand-hub', 'hb-next', () => actions.stepHub(1));
     this.on('vr-hand-hub', 'hb-val', () => actions.stepHub(1));
     this.on('vr-hand-hub', 'hb-enter', () => actions.enterHub());
-    this.on('vr-hand-hub', 'hb-lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-hand-hub', 'hb-exit', () => actions.exitVR());
     this.on('vr-hand-menu', 'hm-begin', () => actions.begin({ vr: true }));
     this.on('vr-hand-menu', 'hm-place', () => actions.openHub());
-    this.on('vr-hand-menu', 'hm-lang', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
     this.on('vr-hand-menu', 'hm-exit', () => actions.exitVR());
     this.on('vr-summary', 'again', () => actions.begin({ vr: true }));
     this.on('vr-summary', 'to-menu', () => actions.backToMenu());
   }
 
-  /** Static, translated labels. */
+  /** Static labels. */
   private relabel() {
-    const lang = getLang();
     const set = (panel: PanelId, id: string, text: string) => this.el(panel, id)?.setProperties({ text });
     set('vr-menu', 'title', t('app.title'));
     set('vr-menu', 'tagline', t('app.tagline'));
@@ -170,14 +160,11 @@ export class VRUISystem extends createSystem({}) {
     for (const m of LENGTHS) set('vr-menu', `len-${m}`, `${m} ${t('ui.min')}`);
     for (const a of AMBIENTS) set('vr-menu', `amb-${a}`, t(`ambient.${a}`));
     set('vr-menu', 'begin', t('ui.begin'));
-    set('vr-menu', 'lang', t('ui.language'));
     set('vr-menu', 'exit', t('ui.exitVR'));
     set('vr-hand-menu', 'hm-begin', t('ui.begin'));
     set('vr-hand-menu', 'hm-place', t('ui.changePlace'));
-    set('vr-hand-menu', 'hm-lang', t('ui.language'));
     set('vr-hand-menu', 'hm-exit', t('ui.exitVR'));
     set('vr-hand-hub', 'hb-enter', t('ui.enter'));
-    set('vr-hand-hub', 'hb-lang', t('ui.language'));
     set('vr-hand-hub', 'hb-exit', t('ui.exitVR'));
     this.showHubPlace();
     set('vr-hand-hud', 'hh-title', t('ui.paused'));
@@ -187,7 +174,6 @@ export class VRUISystem extends createSystem({}) {
     set('vr-summary', 'sum-title', t('ui.complete'));
     set('vr-summary', 'again', t('ui.again'));
     set('vr-summary', 'to-menu', t('ui.menu'));
-    this.world.getSystem(SessionSystem)?.retranslate();
   }
 
   private render(s: AppState, prev: AppState | null) {
@@ -229,7 +215,7 @@ export class VRUISystem extends createSystem({}) {
     }
 
     // Same panel in both modes: a Pause button while running, a "Paused" sign pointing to the hand menu after.
-    if (!prev || prev.mode !== s.mode || prev.prefs.lang !== p.lang) {
+    if (!prev || prev.mode !== s.mode) {
       const paused = s.mode === 'paused';
       this.el('vr-pause', 'pause-label')?.setProperties({ text: t(paused ? 'ui.paused' : 'ui.pause') });
       this.el('vr-pause', 'pause-sign')?.setProperties({ display: paused ? 'flex' : 'none' });

@@ -103,7 +103,6 @@
   </div>
   <span id="hb-enter" class="primary">Enter</span>
   <div class="foot">
-    <span id="hb-lang" class="ghost">中文</span>
     <span id="hb-exit" class="ghost">Exit VR</span>
   </div>
 </div>

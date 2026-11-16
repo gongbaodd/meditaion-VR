@@ -1,5 +1,4 @@
 import { AMBIENTS } from './audio/beds.js';
-import { detectLang } from './i18n/index.js';
 import { INTERVALS, LENGTHS, PATTERN_IDS, PLACES, PRACTICES, type Prefs } from './state.js';
 import type { Minutes, PracticeId } from './session/types.js';
 
@@ -16,7 +15,6 @@ export function defaultPrefs(): Prefs {
     interval: 300,
     ambientVolume: 0.5,
     bellVolume: 0.8,
-    lang: detectLang(),
     hd: true,
   };
 }
@@ -54,7 +52,6 @@ export function loadPrefs(): Prefs {
     interval: pick('interval', (v) => INTERVALS.includes(v as number)),
     ambientVolume: pick('ambientVolume', vol),
     bellVolume: pick('bellVolume', vol),
-    lang: pick('lang', (v) => v === 'en' || v === 'zh'),
     hd: pick('hd', (v) => typeof v === 'boolean'),
   };
 }

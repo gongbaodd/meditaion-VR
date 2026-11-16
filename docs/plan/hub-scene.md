@@ -112,11 +112,11 @@ roll of the hand/controller around the knob axis each frame and add the differen
 
 - New `src/hub/ring.ts`: pure maths (wrap angle, nearest detent, window angle and fade for a dial value). Unit-tested with vitest.
 - New `src/systems/hub-system.ts`: reads the dial, positions and fades the windows, drives the glow,
-  snaps on release, handles window clicks and thumbstick steps, shows/hides the hub by mode, fills labels from i18n.
+  snaps on release, handles window clicks and thumbstick steps, shows/hides the hub by mode, fills labels from `src/strings.json`.
 - `src/systems/place-system.ts`: in `hub` mode keep the dome at zero and the lighting low; fade the place in on entry (reuses the existing fade).
 - `src/systems/vr-ui-system.ts` + `public/ui/menu.uikitml`: remove the Place row, add **Change place**; show no menu in `hub`.
 - `src/audio/`: a short synthesized tick for detents.
-- `src/i18n/en.json`, `zh.json`: `ui.changePlace`, `hub.hint`.
+- `src/strings.json`: `ui.changePlace`, `hub.hint`.
 - `src/index.ts`: register `HubSystem`.
 
 **Untouched:** session runner and timeline, breathing orb, pause / summary / HUD panels, 2D overlay, storage, audio beds.

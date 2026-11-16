@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Builds the VR panel font: Noto Sans SC (SIL OFL 1.1), subset to exactly the
- * characters the app can display (all i18n strings, place names, digits, ASCII).
+ * characters the app can display (UI strings, place names, digits, ASCII).
  *
  * UIKit renders text from glyph atlases generated from a TTF; the full CJK font
  * is ~17 MB, the subset is a few hundred KB.
  *
  * Writes public/fonts/ui-regular.ttf and public/fonts/ui-bold.ttf.
- * Re-run after changing src/i18n/*.json or src/data/places.json.
+ * Re-run after changing src/strings.json or src/data/places.json.
  */
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -32,11 +32,9 @@ if (!existsSync(cached)) {
 
 // Every character the VR panels might show.
 const texts = [];
-for (const f of ['src/i18n/en.json', 'src/i18n/zh.json']) {
-  texts.push(...Object.values(JSON.parse(await readFile(join(root, f), 'utf8'))));
-}
+texts.push(...Object.values(JSON.parse(await readFile(join(root, 'src/strings.json'), 'utf8'))));
 for (const p of JSON.parse(await readFile(join(root, 'src/data/places.json'), 'utf8'))) {
-  texts.push(...Object.values(p.name));
+  texts.push(p.name);
 }
 let ascii = '';
 for (let c = 0x20; c < 0x7f; c++) ascii += String.fromCharCode(c);

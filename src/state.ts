@@ -1,13 +1,12 @@
 import type { AmbientId } from './audio/beds.js';
 import placesJson from './data/places.json';
-import type { Lang } from './i18n/index.js';
 import type { PatternId } from './session/timeline.js';
 import type { Minutes, PracticeId } from './session/types.js';
 
 export interface Place {
   id: string;
   polyhaven: string;
-  name: Record<Lang, string>;
+  name: string;
   /** Accent colour (hex) for the hub window glow. */
   color: string;
   ambient: AmbientId;
@@ -31,7 +30,6 @@ export interface Prefs {
   interval: number;
   ambientVolume: number;
   bellVolume: number;
-  lang: Lang;
   hd: boolean;
 }
 
@@ -52,7 +50,7 @@ export interface AppState {
   loading: boolean;
   immersive: boolean;
   xrSupported: boolean;
-  /** Current on-screen cue text (already translated), or '' */
+  /** Current on-screen cue text (resolved text), or '' */
   cue: string;
   /** Seconds remaining in the running session. */
   remaining: number;

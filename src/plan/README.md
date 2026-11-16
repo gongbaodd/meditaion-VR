@@ -15,7 +15,7 @@ Verified in the IWSDK managed browser and the IWER Quest 3 emulator. **Not yet t
 | M3 Session | ✅ data-driven timeline + runner (52 unit tests), breathing orb, pause / resume / end, history |
 | M4 Menu | ✅ 2D overlay and VR UIKitML panels; prefs persist |
 | M6 Hub | ✅ VR hub: ring of place windows + dial, **Change place** in the menu (see `docs/plan/hub-scene.md`). Emulator-verified only |
-| M5 Ship | ◐ desktop fallback, EN + 中文 (VR too), credits page, GitHub Pages workflow. Not deployed: no remote yet |
+| M5 Ship | ◐ desktop fallback, credits page, GitHub Pages workflow. Not deployed: no remote yet |
 
 **Spike answers**
 
@@ -140,7 +140,7 @@ rights reserved, Medito content is a custom non-open licence. So:
 
 - **v1:** no voice. Bells + visual cues + short text prompts we write ourselves.
 - **v2:** our own scripts (structure informed by the research, wording original), recorded
-  by a person or generated with TTS, per language (EN, 中文 first).
+  by a person or generated with TTS.
 - A "Learn more" page links out to those free resources instead of embedding them.
 
 ## 4. Session design
@@ -170,7 +170,7 @@ our own design, not something those sites publish).
 ```ts
 type Cue =
   | { at: number; kind: 'bell'; sound: string; count?: number }
-  | { at: number; kind: 'text'; key: string; hold: number }   // i18n key
+  | { at: number; kind: 'text'; key: string; hold: number }   // key in strings.json
   | { at: number; kind: 'voice'; clip: string }               // v2
   | { at: number; kind: 'breath'; pattern: [number, number, number, number] | null }
   | { at: number; kind: 'light'; intensity: number; fade: number };
@@ -203,7 +203,7 @@ src/
     AudioEngine.ts          ambient loop (cross-faded), bell one-shots, master/duck/fade
     MenuSystem.ts           UIKitML panels: place, practice, length, sound, credits
     ComfortSystem.ts        recenter, seated height, wrist/gaze "pause" affordance
-  i18n/{en,zh}.json
+  strings.json
   plan/                     this folder
 ```
 
@@ -219,7 +219,7 @@ testable without a headset by driving the clock.
 | **M2** Sound | AudioEngine, one ambient loop, bell set, credits manifest + check | Loop is seamless, audio starts on the Enter-VR gesture |
 | **M3** Session | SessionDef + SessionSystem, breathing orb, 5-min Breathing end-to-end | A full session runs unattended incl. pause/end and fades |
 | **M4** Menu | UIKitML menus, 6 places with lazy load + cross-fade, 4 practices × 4 lengths, settings persist | Whole flow usable with controllers and hands |
-| **M5** Ship | Desktop/mobile fallback, EN + 中文, credits/learn-more pages, deploy | Public URL works in Quest browser |
+| **M5** Ship | Desktop/mobile fallback, credits/learn-more pages, deploy | Public URL works in Quest browser |
 | **v2** | Own voice guidance, streaks/history, sleep mode (dimming night scene), passthrough "eyes-open" mode, PWA offline | — |
 
 **Spikes to run inside M1/M2 (unknowns from research)**
@@ -243,6 +243,5 @@ testable without a headset by driving the clock.
 ## 8. Open questions for you
 
 1. Non-commercial hobby project, or could it become commercial? (Decides whether NC-licensed material may ever be linked/streamed.)
-2. Voice guidance languages for v2 — EN + 中文?
-3. Target device: Quest 3 browser first? Any need for Vision Pro / Pico?
-4. Hosting preference (GitHub Pages is the default assumption).
+2. Target device: Quest 3 browser first? Any need for Vision Pro / Pico?
+3. Hosting preference (GitHub Pages is the default assumption).

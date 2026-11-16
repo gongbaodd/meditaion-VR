@@ -1,6 +1,6 @@
 import { actions, publicUrl, store } from '../app.js';
 import { AMBIENTS } from '../audio/beds.js';
-import { getLang, onLangChange, t } from '../i18n/index.js';
+import { t } from '../strings.js';
 import { type AppState, INTERVALS, LENGTHS, PATTERN_IDS, PLACES, PRACTICES, type Prefs } from '../state.js';
 import { stats } from '../storage.js';
 import { SessionSystemRef } from './session-ref.js';
@@ -70,7 +70,6 @@ export function mountOverlay() {
   volA.addEventListener('input', () => store.setPrefs({ ambientVolume: Number(volA.value) }));
   volB.addEventListener('input', () => store.setPrefs({ bellVolume: Number(volB.value) }));
 
-  $('lang').addEventListener('click', () => store.setPrefs({ lang: getLang() === 'en' ? 'zh' : 'en' }));
   $('begin-vr').addEventListener('click', () => actions.begin({ vr: true }));
   $('change-place').addEventListener('click', () => actions.openHub());
   $('begin-2d').addEventListener('click', () => actions.begin({ vr: false }));
@@ -89,7 +88,7 @@ export function mountOverlay() {
 
   let captionTimer = 0;
 
-  const translateStatic = () => {
+  const fillStatic = () => {
     document.querySelectorAll<HTMLElement>('[data-t]').forEach((el) => {
       el.textContent = t(el.dataset.t!);
     });
@@ -102,7 +101,7 @@ export function mountOverlay() {
     overlay.dataset.loading = String(s.loading);
     overlay.dataset.immersive = String(s.immersive);
 
-    if (!prev || p !== prev.prefs || prev.prefs.lang !== p.lang) {
+    if (!prev || p !== prev.prefs) {
       practices.render(p.practice);
       lengths.render(p.minutes);
       patterns.render(p.pattern);
@@ -148,11 +147,7 @@ export function mountOverlay() {
     }
   };
 
-  translateStatic();
+  fillStatic();
   render(store.get(), null);
   store.subscribe(render);
-  onLangChange(() => {
-    translateStatic();
-    render(store.get(), null);
-  });
 }

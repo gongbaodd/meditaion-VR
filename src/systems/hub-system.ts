@@ -16,7 +16,7 @@ import {
 import { actions, audio, publicUrl, store } from '../app.js';
 import { COUNT, type DeckSlot, mod, deckSlot, detentOffset, KNOB_DEG_PER_DETENT, type Spring, stepSpring, stepTarget, wrapPi } from '../hub/ring.js';
 import { makePaneMaterial } from '../hub/window-material.js';
-import { getLang, onLangChange, t } from '../i18n/index.js';
+import { t } from '../strings.js';
 import { PLACES } from '../state.js';
 import { vrFontFamilies } from '../ui/vr-font.js';
 import { PlaceSystem } from './place-system.js';
@@ -244,7 +244,6 @@ export class HubSystem extends createSystem({}) {
 
     this.relabel();
     this.cleanupFuncs.push(
-      onLangChange(() => this.relabel()),
       store.subscribe((s, prev) => this.onStore(s, prev)),
     );
     this.value = Math.max(0, PLACES.findIndex((p) => p.id === store.get().prefs.place));
@@ -259,8 +258,7 @@ export class HubSystem extends createSystem({}) {
   }
 
   private relabel() {
-    const lang = getLang();
-    PLACES.forEach((p, i) => this.wins[i]?.label.getElementById<UIKit.Text>('name')?.setProperties({ text: p.name[lang] }));
+    PLACES.forEach((p, i) => this.wins[i]?.label.getElementById<UIKit.Text>('name')?.setProperties({ text: p.name }));
     this.title.getElementById<UIKit.Text>('hub-title')?.setProperties({ text: t('app.title') });
     this.title
       .getElementById<UIKit.Text>('hub-hint')

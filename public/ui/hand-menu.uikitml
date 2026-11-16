@@ -1,7 +1,7 @@
 <!--
   Hand menu: a compact chooser that sits beside the raised palm (see src/systems/hand-menu-system.ts).
   1 unit = 1 cm before the node scale; the scene node scales it to ~22 cm wide. Rows are 38 mm tall so a fingertip can hit them.
-  Ids: hm-<row>-prev / hm-<row>-val / hm-<row>-next for practice, len, amb; hm-begin; hm-place, hm-lang, hm-exit.
+  Ids: hm-<row>-prev / hm-<row>-val / hm-<row>-next for practice, len, amb; hm-begin; hm-place, hm-exit.
 -->
 <style>
   .root {
@@ -115,7 +115,6 @@
   <span id="hm-begin" class="primary">Begin</span>
   <div class="foot">
     <span id="hm-place" class="ghost">Change place</span>
-    <span id="hm-lang" class="ghost">中文</span>
     <span id="hm-exit" class="ghost">Exit VR</span>
   </div>
 </div>

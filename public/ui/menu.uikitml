@@ -1,5 +1,5 @@
 <!--
-  In-VR menu. Labels are filled in from src/i18n at runtime (ids end in -label or match a choice).
+  In-VR menu. Labels are filled in from src/strings.json at runtime (ids end in -label or match a choice).
   Units are UIKit units; the scene node scales the panel to ~0.9 m wide.
   Chip ids: place-<id>, practice-<id>, len-<minutes>, amb-<id>. Selected state is set from code.
 -->
@@ -137,7 +137,6 @@
     <span id="begin" class="primary">Begin</span>
     <div class="spacer"></div>
     <span id="change-place" class="ghost">Change place</span>
-    <span id="lang" class="ghost">中文</span>
     <span id="exit" class="ghost">Exit VR</span>
   </div>
 </Panel>
