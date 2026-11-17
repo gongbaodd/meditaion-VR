@@ -17,6 +17,14 @@ const FADE_IN = 1.6;
 const DRIFT_SPEED = (0.3 * Math.PI) / 180;
 /** Seconds to ease the drift in and out, so it never visibly starts or stops. */
 const DRIFT_EASE = 10;
+/**
+ * Turning with the dial never rotates the visible panorama (comfort): while the dial is held
+ * only the knob moves; on release the surroundings fade out, take the new yaw, and fade back in.
+ */
+const TURN_FADE_OUT = 0.2;
+const TURN_FADE_IN = 0.45;
+/** Dial turns smaller than this (radians, ~1.5°) are hand shake and do not start a fade. */
+const TURN_THRESHOLD = (1.5 * Math.PI) / 180;
 
 /**
  * With no rotation, looking down −Z shows the centre of the equirect (u = 0.5), and a
@@ -50,8 +58,14 @@ export class PlaceSystem extends createSystem({}) {
   private drift = 0;
   private driftSpeed = 0;
   private driftTarget = 0;
-  /** Yaw (radians) the user has turned the surroundings with the dial. */
+  /** Yaw (radians) the user has asked for with the dial (the knob shows this). */
   private userYaw = 0;
+  /** Part of `userYaw` actually applied to the panorama; it only catches up while dark. */
+  private appliedYaw = 0;
+  /** 0..1 fade for dial turns (1 = shown). */
+  private turnK = 1;
+  /** The dial was released with a turn waiting: fade out and apply it. */
+  private turnPending = false;
 
   init(): void {
     const root = this.world.activeLevel.value;
@@ -112,6 +126,9 @@ export class PlaceSystem extends createSystem({}) {
     // A newly shown place always faces its focal point.
     this.drift = 0;
     this.userYaw = 0;
+    this.appliedYaw = 0;
+    this.turnK = 1;
+    this.turnPending = false;
     this.applySources(bgUrl, iblUrl, place);
     this.fadeTarget = 1;
     this.fadeRate = 1 / FADE_IN;
@@ -123,7 +140,7 @@ export class PlaceSystem extends createSystem({}) {
   private devYaw = 0;
 
   private baseYaw(place: Place): number {
-    return yawForFocus(place.focusU) + (this.devYaw * Math.PI) / 180 + this.userYaw;
+    return yawForFocus(place.focusU) + (this.devYaw * Math.PI) / 180 + this.appliedYaw;
   }
 
   /** How far (radians) the user has turned the surroundings with the dial. */
@@ -131,11 +148,34 @@ export class PlaceSystem extends createSystem({}) {
     return this.userYaw;
   }
 
-  /** Turn the surroundings by `angle` radians on the user's request (the dial). */
+  /** Turn the surroundings by `angle` radians on the user's request (the dial). Applied on release. */
   turn(angle: number) {
     if (angle === 0) return;
     this.userYaw += angle;
-    this.applyYawDelta(angle);
+  }
+
+  /** The dial was let go: fade out, apply the new yaw while dark, fade back in. */
+  endTurn() {
+    if (Math.abs(this.userYaw - this.appliedYaw) > TURN_THRESHOLD) this.turnPending = true;
+  }
+
+  /** Runs the release fade. Returns true if turnK changed. */
+  private stepTurn(delta: number): boolean {
+    if (this.turnPending) {
+      this.turnK = Math.max(0, this.turnK - delta / TURN_FADE_OUT);
+      if (this.turnK === 0) {
+        this.turnPending = false;
+        const pending = this.userYaw - this.appliedYaw;
+        this.appliedYaw = this.userYaw;
+        this.applyYawDelta(pending);
+      }
+      return true;
+    }
+    if (this.turnK < 1) {
+      this.turnK = Math.min(1, this.turnK + delta / TURN_FADE_IN);
+      return true;
+    }
+    return false;
   }
 
   private resetDrift() {
@@ -205,7 +245,8 @@ export class PlaceSystem extends createSystem({}) {
   private writeIntensity(needsUpdate: boolean) {
     const place = this.place;
     if (!place || !this.root.hasComponent(DomeTexture)) return;
-    const k = this.fade * this.level;
+    const t = this.turnK;
+    const k = this.fade * this.level * t * t * (3 - 2 * t);
     const dome = place.domeIntensity * k;
     // IBL never drops fully to black so the orb and mat stay faintly lit.
     const ibl = place.iblIntensity * (0.15 + 0.85 * k);
@@ -242,7 +283,7 @@ export class PlaceSystem extends createSystem({}) {
           : Math.max(this.driftTarget, this.driftSpeed - step);
     }
     if (this.driftSpeed > 0) this.rotateBy(this.driftSpeed * delta);
-    let changed = false;
+    let changed = this.stepTurn(delta);
     if (this.fade !== this.fadeTarget) {
       const step = delta * this.fadeRate;
       this.fade =

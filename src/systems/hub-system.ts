@@ -417,6 +417,7 @@ export class HubSystem extends createSystem({}) {
     this.nearDrag = false;
     this.dragEndedAt = performance.now();
     if (this.shown) this.snap = this.target;
+    if (this.placeDial) this.world.getSystem(PlaceSystem)?.endTurn();
   }
 
   /**
