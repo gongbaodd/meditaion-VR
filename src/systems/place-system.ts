@@ -13,10 +13,6 @@ import { PLACES, type Place } from '../state.js';
 
 const FADE_OUT = 0.7;
 const FADE_IN = 1.6;
-/** Yaw drift of the surroundings during a session: a full turn takes 20 minutes. */
-const DRIFT_SPEED = (0.3 * Math.PI) / 180;
-/** Seconds to ease the drift in and out, so it never visibly starts or stops. */
-const DRIFT_EASE = 10;
 /**
  * Turning with the dial never rotates the visible panorama (comfort): while the dial is held
  * only the knob moves; on release the surroundings fade out, take the new yaw, and fade back in.
@@ -54,10 +50,14 @@ export class PlaceSystem extends createSystem({}) {
   private place: Place | null = null;
   private token = 0;
   private hdLoaded = new Set<string>();
-  /** Yaw (radians) the surroundings have drifted since the session began. */
-  private drift = 0;
-  private driftSpeed = 0;
-  private driftTarget = 0;
+  /**
+   * Background textures this system has handed to the dome, by URL. Each holds a full GPU copy
+   * (an 8k panorama is ~170 MiB, a 4k ~43 MiB) that three.js keeps until `dispose()`, so a
+   * headset runs out of memory after a place change or two unless the old ones are released.
+   */
+  private bgTextures = new Map<string, Texture>();
+  /** A background was swapped: release the old ones once the dome no longer shows them. */
+  private releasePending = false;
   /** Yaw (radians) the user has asked for with the dial (the knob shows this). */
   private userYaw = 0;
   /** Part of `userYaw` actually applied to the panorama; it only catches up while dark. */
@@ -76,11 +76,6 @@ export class PlaceSystem extends createSystem({}) {
       store.subscribe((s, prev) => {
         if (s.prefs.place !== prev.prefs.place) this.show(s.prefs.place);
         if (s.immersive && !prev.immersive) this.maybeUpgrade();
-        if (s.mode !== prev.mode) {
-          // A new session starts facing the place's focal point again; resuming carries on.
-          if (s.mode === 'running' && prev.mode !== 'paused') this.resetDrift();
-          this.driftTarget = s.mode === 'running' ? DRIFT_SPEED : 0;
-        }
       }),
       this.world.visibilityState.subscribe((v) => {
         if (v !== VisibilityState.NonImmersive) this.maybeUpgrade();
@@ -121,10 +116,10 @@ export class PlaceSystem extends createSystem({}) {
     }
     if (token !== this.token) return;
     bg.colorSpace = SRGBColorSpace;
+    this.trackBackground(bgUrl, bg);
 
     this.place = place;
     // A newly shown place always faces its focal point.
-    this.drift = 0;
     this.userYaw = 0;
     this.appliedYaw = 0;
     this.turnK = 1;
@@ -208,26 +203,15 @@ export class PlaceSystem extends createSystem({}) {
     return false;
   }
 
-  private resetDrift() {
-    if (this.drift === 0) return;
-    this.rotateBy(-this.drift);
-    this.driftSpeed = 0;
-  }
-
   /**
    * Turn the dome and its lighting together. The component holds the authored yaw and the
    * scene rotations also carry the engine's recenter offset, so both are nudged by the
    * same amount rather than rewritten.
    */
-  private rotateBy(angle: number) {
-    this.drift += angle;
-    this.applyYawDelta(angle);
-  }
-
   private applyYawDelta(angle: number) {
     const place = this.place;
     if (!place || !this.root.hasComponent(DomeTexture)) return;
-    const yaw = this.baseYaw(place) + this.drift;
+    const yaw = this.baseYaw(place);
     this.root.getVectorView(DomeTexture, 'rotation')[1] = yaw;
     this.root.getVectorView(IBLTexture, 'rotation')[1] = yaw;
     this.scene.backgroundRotation.y += angle;
@@ -235,7 +219,7 @@ export class PlaceSystem extends createSystem({}) {
   }
 
   private applySources(bgUrl: string, iblUrl: string, place: Place) {
-    const yaw = this.baseYaw(place) + this.drift;
+    const yaw = this.baseYaw(place);
     const r = this.root;
     if (!r.hasComponent(DomeTexture)) {
       r.addComponent(DomeTexture, { src: bgUrl, intensity: 0, blurriness: 0 });
@@ -264,12 +248,50 @@ export class PlaceSystem extends createSystem({}) {
     try {
       const tex = await AssetManager.loadTexture(url);
       tex.colorSpace = SRGBColorSpace;
-      if (token !== this.token || this.place !== place) return;
+      if (token !== this.token || this.place !== place) {
+        // Never shown, so never uploaded; let a later visit upgrade again.
+        this.hdLoaded.delete(url);
+        return;
+      }
+      this.trackBackground(url, tex);
       this.root.setValue(DomeTexture, 'src', url);
       this.root.setValue(DomeTexture, '_needsUpdate', true);
     } catch (e) {
       console.warn('[place] HD background unavailable', e);
     }
+  }
+
+  private trackBackground(url: string, tex: Texture) {
+    this.bgTextures.set(url, tex);
+    this.releasePending = true;
+  }
+
+  /**
+   * Free the GPU copy of every background that is neither on screen nor about to be. The
+   * EnvironmentSystem swaps `scene.background` a frame or more after `src` changes, and a
+   * texture drawn again after `dispose()` is silently re-uploaded, so wait for the swap.
+   * The decoded image stays in the AssetManager cache: revisiting a place re-uploads it
+   * without downloading it again.
+   */
+  private releaseOldBackgrounds() {
+    const shown = this.scene.background;
+    const src = this.root.hasComponent(DomeTexture) ? this.root.getValue(DomeTexture, 'src') : '';
+    let waiting = false;
+    for (const [url, tex] of this.bgTextures) {
+      if (url === src) {
+        if (tex !== shown) waiting = true;
+        continue;
+      }
+      if (tex === shown) {
+        waiting = true;
+        continue;
+      }
+      tex.dispose();
+      this.bgTextures.delete(url);
+      // Upgrade again when the place is revisited (the 8k is gone from the GPU).
+      this.hdLoaded.delete(url);
+    }
+    this.releasePending = waiting;
   }
 
   private writeIntensity(needsUpdate: boolean) {
@@ -297,7 +319,7 @@ export class PlaceSystem extends createSystem({}) {
       const step = kb?.getKeyDown('BracketRight') ? 30 : kb?.getKeyDown('BracketLeft') ? -30 : 0;
       if (step) {
         this.devYaw += step;
-        const yaw = this.baseYaw(this.place) + this.drift;
+        const yaw = this.baseYaw(this.place);
         this.root.getVectorView(DomeTexture, 'rotation').set([0, yaw, 0]);
         this.root.getVectorView(IBLTexture, 'rotation').set([0, yaw, 0]);
         this.root.setValue(DomeTexture, '_needsUpdate', true);
@@ -305,14 +327,7 @@ export class PlaceSystem extends createSystem({}) {
         console.info(`[place] devYaw=${this.devYaw}° total=${((yaw * 180) / Math.PI).toFixed(1)}°`);
       }
     }
-    if (this.driftSpeed !== this.driftTarget) {
-      const step = (delta * DRIFT_SPEED) / DRIFT_EASE;
-      this.driftSpeed =
-        this.driftSpeed < this.driftTarget
-          ? Math.min(this.driftTarget, this.driftSpeed + step)
-          : Math.max(this.driftTarget, this.driftSpeed - step);
-    }
-    if (this.driftSpeed > 0) this.rotateBy(this.driftSpeed * delta);
+    if (this.releasePending) this.releaseOldBackgrounds();
     let changed = this.stepTurn(delta);
     if (this.fade !== this.fadeTarget) {
       const step = delta * this.fadeRate;

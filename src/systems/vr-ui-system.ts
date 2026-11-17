@@ -34,8 +34,8 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).p
  * Spatial UI for immersive mode. Panels are declared in the scene JSON; this
  * system wires clicks, fills translated labels, and shows the right panel for
  * the current mode, placed in front of wherever the viewer is looking. The menu and
- * the paused-session controls live on a raised hand instead (HandMenuSystem); the in-front menu
- * only returns as a fallback when no hand or controller is tracked.
+ * the paused-session controls live on a raised hand instead (HandMenuSystem); the old
+ * in-front menu (`vr-menu`) is never shown in XR.
  */
 export class VRUISystem extends createSystem({}) {
   private panels = new Map<PanelId, UIKitMLAsset>();
@@ -59,20 +59,8 @@ export class VRUISystem extends createSystem({}) {
     this.cleanupFuncs.push(store.subscribe((s, prev) => this.render(s, prev)));
   }
 
-  /** True when the hand menu can't be used (nothing tracked), so the menu is shown in front instead. */
-  private fallback = false;
   /** The first-use hint "look at your palm" is shown until the hand menu has opened once. */
   private hintDone = false;
-
-  get fallbackActive() {
-    return this.fallback;
-  }
-
-  setFallback(on: boolean) {
-    if (on === this.fallback) return;
-    this.fallback = on;
-    this.render(store.get(), store.get());
-  }
 
   private hubPlace = 0;
 
@@ -191,11 +179,8 @@ export class VRUISystem extends createSystem({}) {
     }
 
     const want = new Set<PanelId>();
-    const hint = s.mode === 'menu' && !this.fallback && !this.hintDone;
-    if (s.mode === 'menu') {
-      if (this.fallback) want.add('vr-menu');
-      else if (hint) want.add('vr-cue');
-    }
+    const hint = s.mode === 'menu' && !this.hintDone;
+    if (hint) want.add('vr-cue');
     if (s.mode === 'running' && s.cue) want.add('vr-cue');
     if (s.mode === 'running' || s.mode === 'paused') want.add('vr-pause');
     if (s.mode === 'summary') want.add('vr-summary');

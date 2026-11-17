@@ -34,8 +34,6 @@ const FADE_IN = 0.15;
 const FADE_OUT = 0.25;
 /** Position/rotation smoothing, per second (about a 12 Hz cut-off). */
 const SMOOTH = 12;
-/** Seconds with nothing tracked in the menu before the in-front menu comes back. */
-const FALLBACK_AFTER = 5;
 const BASE_SCALE = 0.05;
 const PARKED_Y = -50;
 
@@ -68,7 +66,6 @@ export class HandMenuSystem extends createSystem({}) {
   private sideVecs: Record<Hand, Vector3> = { left: new Vector3(), right: new Vector3() };
   private normals: Record<Hand, Vector3> = { left: new Vector3(), right: new Vector3() };
   private holder: Hand | null = null;
-  private untrackedFor = 0;
   private lastMode = '';
 
   private head = new Vector3();
@@ -105,33 +102,20 @@ export class HandMenuSystem extends createSystem({}) {
 
     if (s.mode !== this.lastMode) {
       this.lastMode = s.mode;
-      this.untrackedFor = 0;
       for (const h of SIDES) resetGate(this.gates[h]);
       this.holder = null;
     }
 
     if (!want) {
-      this.untrackedFor = 0;
       for (const k of KINDS) this.fade(k, false, delta);
       this.holder = null;
-      ui?.setFallback(false);
       return;
     }
 
     this.readHead();
-    let anyTracked = false;
     for (const h of SIDES) {
       this.sampleHand(h);
-      anyTracked ||= this.samples[h].tracked;
       stepGate(this.gates[h], this.samples[h], delta, DWELL[want]);
-    }
-
-    // Nothing tracked for a while in the menu: bring the in-front menu back so you can still start.
-    if (want === 'menu') {
-      this.untrackedFor = anyTracked ? 0 : this.untrackedFor + delta;
-      ui?.setFallback(this.untrackedFor >= FALLBACK_AFTER);
-    } else {
-      ui?.setFallback(false);
     }
 
     // The hand already holding the menu keeps it; otherwise the first one that opens.
@@ -141,7 +125,7 @@ export class HandMenuSystem extends createSystem({}) {
     }
 
     if (this.holder) this.aim(this.holder, want);
-    this.fade(want, this.holder !== null && !(ui?.fallbackActive ?? false), delta);
+    this.fade(want, this.holder !== null, delta);
     for (const k of KINDS) if (k !== want) this.fade(k, false, delta);
     if (want === 'menu' && this.slots.menu.alpha > 0.5) ui?.dismissHint();
   }
