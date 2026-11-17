@@ -46,3 +46,6 @@ pids/
 .cursor/mcp.json
 .vscode/mcp.json
 .codex/config.toml
+
+# Raw headset recordings (large; used as video source footage)
+docs/records/
