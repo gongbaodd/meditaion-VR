@@ -65,7 +65,15 @@ const CLICK_GUARD_MS = 300;
 /** Where the dial stands in a place (VR, outside the hub): front-right of the mat, turned to face it. */
 const PLACE_DIAL_X = 0.34;
 const PLACE_DIAL_Z = -0.34;
-const PLACE_DIAL_YAW = Math.atan2(-PLACE_DIAL_X, -PLACE_DIAL_Z);
+/** Moving the dial by its stand: it stays between these distances (metres) from the player's origin. */
+const MOVE_MIN_R = 0.25;
+const MOVE_MAX_R = 1.6;
+/** A pinch with the fingertip this close to the stand's axis, metres, (and below the plate) grabs the stand. */
+const NEAR_STAND_R = 0.07;
+/** Farthest a ray may reach across the floor plane while moving the dial, metres. */
+const MOVE_MAX_T = 8;
+const STAND_IDLE = 0x555a66;
+const STAND_HOVER = 0xa0a6b4;
 const HANDLE_IDLE = 0x8a90a0;
 const HANDLE_HOVER = 0xe8eaf0;
 
@@ -79,6 +87,9 @@ const plateCenter = new Vector3();
 const raySrc = new Vector3();
 const hexColor = new Color();
 const handleColor = new Color();
+const standColor = new Color();
+const movePt = new Vector3();
+const STAND_PARTS = new Set(['Stand', 'Foot', 'StandGrip']);
 
 /**
  * The VR hub: a ring of arched place windows and a dial that changes which one is in front.
@@ -90,6 +101,8 @@ const handleColor = new Color();
  * the handle follows where the ray crosses the plate. Or reach out and pinch the knob itself
  * (trigger with the controller on it): the handle follows the fingertip. On release it eases to the nearest
  * detent. Thumbstick left/right steps one place; selecting any window enters its place.
+ * Press the stand (the pole) instead and drag: the whole dial slides across the floor, always
+ * turned to face the player. The hub and the places each remember where it was left.
  */
 export class HubSystem extends createSystem({}) {
   private wins: Win[] = [];
@@ -127,6 +140,17 @@ export class HubSystem extends createSystem({}) {
   /** Desktop mouse position in normalised device coordinates (-1..1, y up). */
   private mouseX = 0;
   private mouseY = 0;
+  /** Dragging the stand moves the whole dial (rather than turning the knob). */
+  private moving = false;
+  private moveNear = false;
+  /** Height of the horizontal plane the move ray is intersected with, metres (world). */
+  private moveY = 0;
+  private moveStart = new Vector3();
+  private moveFrom = { x: 0, z: 0 };
+  private hubPos = { x: 0, z: -0.45 };
+  private placePos = { x: PLACE_DIAL_X, z: PLACE_DIAL_Z };
+  private hoveringStand = false;
+  private standMat: MeshBasicMaterial | undefined;
 
   init(): void {
     const dial = this.world.getSceneObject('hub-dial');
@@ -147,6 +171,13 @@ export class HubSystem extends createSystem({}) {
       // Materials are shared between clones; give this dial its own.
       this.handleMat = (handle.material as MeshBasicMaterial).clone();
       handle.material = this.handleMat;
+    }
+    const stand = dial.getObjectByName('Stand') as Mesh | undefined;
+    if (stand) {
+      this.standMat = (stand.material as MeshBasicMaterial).clone();
+      stand.material = this.standMat;
+      const foot = dial.getObjectByName('Foot') as Mesh | undefined;
+      if (foot) foot.material = this.standMat;
     }
     this.haloMesh = (dial.getObjectByName('HandleHalo') as Mesh | undefined) ?? undefined;
     if (this.haloMesh) {
@@ -210,12 +241,22 @@ export class HubSystem extends createSystem({}) {
     dial.addEventListener('pointerdown', down as never);
     dial.addEventListener('pointerup', upEv as never);
     dial.addEventListener('pointercancel', upEv as never);
-    const enter = () => (this.hovering = true);
-    const leave = () => (this.hovering = false);
-    dial.addEventListener('pointerenter', enter as never);
+    // Hovering the stand lights the stand; hovering the rest of the dial lights the handle.
+    const over = (e: unknown) => {
+      const onStand = this.isStandHit(e);
+      this.hoveringStand = onStand;
+      this.hovering = !onStand;
+    };
+    const leave = () => {
+      this.hovering = false;
+      this.hoveringStand = false;
+    };
+    dial.addEventListener('pointerenter', over as never);
+    dial.addEventListener('pointermove', over as never);
     dial.addEventListener('pointerleave', leave as never);
     this.cleanupFuncs.push(() => {
-      dial.removeEventListener('pointerenter', enter as never);
+      dial.removeEventListener('pointerenter', over as never);
+      dial.removeEventListener('pointermove', over as never);
       dial.removeEventListener('pointerleave', leave as never);
       dial.removeEventListener('pointerdown', down as never);
       dial.removeEventListener('pointerup', upEv as never);
@@ -226,13 +267,16 @@ export class HubSystem extends createSystem({}) {
     // select release wherever it points, so letting go always lets go.
     const xr = this.world.renderer.xr;
     const selectEnd = (e: XRInputSourceEvent) => {
-      if (this.dragging && e.inputSource.handedness === this.dragHand) this.endDrag();
+      if ((this.dragging || this.moving) && e.inputSource.handedness === this.dragHand) this.endDrag();
     };
     // Reaching out and pinching the knob (or pulling the trigger with the controller on it):
     // ray events never fire for that, so pick it up from the select itself.
     const selectStart = (e: XRInputSourceEvent) => {
       const h = e.inputSource.handedness;
-      if (h === 'left' || h === 'right') this.beginNearDrag(h);
+      if (h === 'left' || h === 'right') {
+        this.beginNearDrag(h);
+        if (!this.dragging) this.beginNearMove(h);
+      }
     };
     const onSession = () => {
       const session = xr.getSession();
@@ -343,16 +387,113 @@ export class HubSystem extends createSystem({}) {
   }
 
   private onWindowClick(i: number) {
-    if (!this.shown || this.dragging || performance.now() - this.dragEndedAt < CLICK_GUARD_MS) return;
+    if (!this.shown || this.dragging || this.moving || performance.now() - this.dragEndedAt < CLICK_GUARD_MS) return;
     void audio.unlock();
     this.enter(i);
   }
 
   // ---- dial ----------------------------------------------------------------------------
 
+  /** True when a pointer event hit the stand (pole, foot or its grip sleeve) rather than the head. */
+  private isStandHit(e: unknown): boolean {
+    let o = (e as { object?: Object3D }).object ?? null;
+    while (o && o !== this.dial) {
+      if (STAND_PARTS.has(o.name)) return true;
+      o = o.parent;
+    }
+    return false;
+  }
+
+  private canInteract() {
+    return !this.dragging && !this.moving && (this.shown || this.placeDial);
+  }
+
+  /** Start moving the dial: remember where it stood and where the grab point was. */
+  private startMove(hand: 'left' | 'right', near: boolean, grabY: number) {
+    void audio.unlock();
+    const pos = this.placeDial ? this.placePos : this.hubPos;
+    this.moveFrom.x = pos.x;
+    this.moveFrom.z = pos.z;
+    this.moveStart.copy(movePt);
+    this.moveY = grabY;
+    this.dragHand = hand;
+    this.moveNear = near;
+    this.moving = true;
+    this.hovering = false;
+  }
+
+  /** Start moving the dial by hand if `hand`'s fingertip is pinching on the stand. */
+  private beginNearMove(hand: 'left' | 'right') {
+    if (!this.canInteract()) return;
+    const tip = this.player.indexTipSpaces[hand];
+    if (!tip) return;
+    tip.getWorldPosition(movePt);
+    toPlate.copy(movePt);
+    this.dial.worldToLocal(toPlate);
+    if (Math.hypot(toPlate.x, toPlate.z) > NEAR_STAND_R || toPlate.y < 0 || toPlate.y > 0.82) return;
+    this.startMove(hand, true, movePt.y);
+  }
+
+  /** Ray (raySrc/aim) crossing the horizontal plane at `moveY`, into `movePt`. */
+  private rayFloorPoint(): boolean {
+    if (Math.abs(aim.y) < 0.02) return false;
+    const t = (this.moveY - raySrc.y) / aim.y;
+    if (t < 0 || t > MOVE_MAX_T) return false;
+    movePt.copy(raySrc).addScaledVector(aim, t);
+    return true;
+  }
+
+  /** Current point of the hand (or mouse) holding the move, into `movePt`. */
+  private movePoint(immersive: boolean): boolean {
+    if (this.moveNear) {
+      const tip = this.player.indexTipSpaces[this.dragHand];
+      if (!tip) return false;
+      tip.getWorldPosition(movePt);
+      return true;
+    }
+    if (immersive) {
+      const r = this.player.raySpaces[this.dragHand];
+      if (!r) return false;
+      r.getWorldPosition(raySrc);
+      r.getWorldQuaternion(tmpQ);
+      aim.set(0, 0, -1).applyQuaternion(tmpQ);
+    } else {
+      const cam = this.world.camera;
+      cam.getWorldPosition(raySrc);
+      aim.set(this.mouseX, this.mouseY, 0.5).unproject(cam).sub(raySrc).normalize();
+    }
+    return this.rayFloorPoint();
+  }
+
+  /** Slide the dial by how far the grab point has travelled since the press. */
+  private applyMove(immersive: boolean) {
+    if (!this.movePoint(immersive)) return;
+    let x = this.moveFrom.x + movePt.x - this.moveStart.x;
+    let z = this.moveFrom.z + movePt.z - this.moveStart.z;
+    const r = Math.hypot(x, z);
+    if (r < 1e-6) {
+      x = 0;
+      z = -MOVE_MIN_R;
+    } else if (r < MOVE_MIN_R || r > MOVE_MAX_R) {
+      const k = Math.min(MOVE_MAX_R, Math.max(MOVE_MIN_R, r)) / r;
+      x *= k;
+      z *= k;
+    }
+    const pos = this.placeDial ? this.placePos : this.hubPos;
+    pos.x = x;
+    pos.z = z;
+    this.standDialAt(pos);
+  }
+
+  /** Put the dial on the floor at `pos`, turned so its plate tilts toward the player. */
+  private standDialAt(pos: { x: number; z: number }) {
+    this.dial.position.set(pos.x, 0, pos.z);
+    this.dial.rotation.y = Math.atan2(-pos.x, -pos.z);
+  }
+
   /** Start a direct-hand drag if `hand`'s fingertip is on the dial. */
   private beginNearDrag(hand: 'left' | 'right') {
-    if (this.dragging || (!this.shown && !this.placeDial)) return;
+    if (this.dragging || this.moving || (!this.shown && !this.placeDial)) return;
     const ang = this.tipPlateAngle(hand);
     if (Number.isNaN(ang) || Math.abs(plateHit.y) > NEAR_H || Math.hypot(plateHit.x, plateHit.z) > NEAR_R) return;
     void audio.unlock();
@@ -364,8 +505,44 @@ export class HubSystem extends createSystem({}) {
   }
 
   private beginDrag(e: unknown) {
-    if (this.dragging || (!this.shown && !this.placeDial)) return;
+    if (!this.canInteract()) return;
     void audio.unlock();
+    const ev = e as { pointerId?: number; target?: Object3D; intersection?: { point?: Vector3 } };
+    if (this.isStandHit(e)) {
+      // Grabbed the stand: move the whole dial. Pick the hand whose ray lands nearest the hit.
+      const immersive = store.get().immersive;
+      const hit = ev.intersection?.point;
+      const y = hit?.y ?? 0.4;
+      let hand: 'left' | 'right' = 'right';
+      if (immersive && hit) {
+        let bestD = Infinity;
+        for (const h of ['left', 'right'] as const) {
+          const r = this.player.raySpaces[h];
+          if (!r) continue;
+          r.getWorldPosition(raySrc);
+          r.getWorldQuaternion(tmpQ);
+          aim.set(0, 0, -1).applyQuaternion(tmpQ);
+          const d = toPlate.copy(hit).sub(raySrc).cross(aim).length();
+          if (d < bestD) {
+            bestD = d;
+            hand = h;
+          }
+        }
+      }
+      this.dragHand = hand;
+      this.moveNear = false;
+      this.moveY = y;
+      if (!this.movePoint(immersive)) {
+        if (!hit) return;
+        movePt.copy(hit);
+      }
+      this.startMove(hand, false, y);
+      if (ev.target && typeof ev.pointerId === 'number') {
+        ev.target.setPointerCapture(ev.pointerId);
+        this.capture = { obj: ev.target, id: ev.pointerId };
+      }
+      return;
+    }
     if (!store.get().immersive) {
       const ang = this.mousePlateAngle();
       if (Number.isNaN(ang)) return;
@@ -399,7 +576,6 @@ export class HubSystem extends createSystem({}) {
     this.lastAng = bestAng;
     // Capture the pointer: while held, the ray only intersects the dial (no hover/clicks on
     // the windows behind it) and its release is delivered here even if the ray drifts off.
-    const ev = e as { pointerId?: number; target?: Object3D };
     if (ev.target && typeof ev.pointerId === 'number') {
       ev.target.setPointerCapture(ev.pointerId);
       this.capture = { obj: ev.target, id: ev.pointerId };
@@ -411,6 +587,12 @@ export class HubSystem extends createSystem({}) {
       const { obj, id } = this.capture;
       this.capture = null;
       if (obj.hasPointerCapture(id)) obj.releasePointerCapture(id);
+    }
+    if (this.moving) {
+      this.moving = false;
+      this.moveNear = false;
+      this.dragEndedAt = performance.now();
+      return;
     }
     if (!this.dragging) return;
     this.dragging = false;
@@ -505,11 +687,11 @@ export class HubSystem extends createSystem({}) {
         this.dial.visible = true;
         this.floor.visible = true;
         this.title.visible = true;
-        this.dial.position.set(0, 0, -0.45);
-        this.dial.rotation.y = 0;
+        this.standDialAt(this.hubPos);
         this.title.position.set(0, 2.0, -3.2);
       }
     }
+    if (this.moving) this.applyMove(s.immersive);
     if (!want) {
       this.updatePlaceDial(s.immersive);
       return;
@@ -550,12 +732,11 @@ export class HubSystem extends createSystem({}) {
   }
 
   private setPlaceDial(on: boolean) {
-    if (this.dragging) this.endDrag();
+    if (this.dragging || this.moving) this.endDrag();
     this.placeDial = on;
     this.dial.visible = on;
     if (on) {
-      this.dial.position.set(PLACE_DIAL_X, 0, PLACE_DIAL_Z);
-      this.dial.rotation.y = PLACE_DIAL_YAW;
+      this.standDialAt(this.placePos);
     } else {
       this.dial.position.y = PARKED_Y;
       this.dial.rotation.y = 0;
@@ -583,6 +764,10 @@ export class HubSystem extends createSystem({}) {
 
   /** Grey when idle, brighter when pointed at, the front place's colour (with a halo) while held. */
   private styleHandle(detent: number) {
+    if (this.standMat) {
+      standColor.set(this.moving || this.hoveringStand ? STAND_HOVER : STAND_IDLE);
+      this.standMat.color.lerp(standColor, 0.25);
+    }
     if (!this.handleMat) return;
     if (this.dragging) {
       handleColor.set(PLACES[((detent % COUNT) + COUNT) % COUNT].color);

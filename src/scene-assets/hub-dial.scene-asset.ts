@@ -30,7 +30,7 @@ export const HANDLE_R = 0.082;
  * (the viewer). A fixed ring of six coloured marks sits on the plate; a turning part (Knob: cap,
  * arm and a 3.5 cm Handle on the rim) spins around its local Y. Detent i is at the Knob angle
  * `PI - i * 60deg` (detent 0 at the far edge of the plate). Origin at the floor under the stand.
- * Parts: Stand, Foot, Head (tilted), Plate, Track, Marks (6), Knob (Cap, Arm, Handle, HandleHalo).
+ * Parts: Stand, Foot, StandGrip (invisible hit sleeve), Head (tilted), Plate, Track, Marks (6), Knob (Cap, Arm, Handle, HandleHalo).
  */
 function build(): Group {
   const root = new Group();
@@ -42,7 +42,14 @@ function build(): Group {
   const foot = new Mesh(new CylinderGeometry(0.1, 0.12, 0.012, 32), metal);
   foot.name = 'Foot';
   foot.position.y = 0.006;
-  root.add(stand, foot);
+  // Invisible, fatter sleeve around the stand so a ray or hand can catch the thin pole to move the dial.
+  const grip = new Mesh(
+    new CylinderGeometry(0.045, 0.045, 0.78, 12),
+    new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }),
+  );
+  grip.name = 'StandGrip';
+  grip.position.y = 0.4;
+  root.add(stand, foot, grip);
 
   const head = new Group();
   head.name = 'Head';
