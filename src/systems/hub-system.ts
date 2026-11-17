@@ -14,7 +14,8 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import { actions, audio, publicUrl, store } from '../app.js';
-import { COUNT, type Dissolve, detentOffset, ease, KNOB_DEG_PER_DETENT, mod, ringXZ, stepDissolve, stepTarget, windowAngleDeg, windowFade, wrapPi } from '../hub/ring.js';
+import { COUNT, type Dissolve, detentOffset, ease, KNOB_DEG_PER_DETENT, mod, ringXZ, stepDissolve, stepTarget, windowAngleDeg, windowFade, windowGlow, wrapPi } from '../hub/ring.js';
+import { PreviewScreen } from '../hub/preview-screen.js';
 import { makePaneMaterial } from '../hub/window-material.js';
 import { t } from '../strings.js';
 import { PLACES } from '../state.js';
@@ -89,6 +90,10 @@ const hexColor = new Color();
 const handleColor = new Color();
 const standColor = new Color();
 const movePt = new Vector3();
+const viewer = new Vector3();
+/** Preview screen centre above the dial's floor point, metres (dial frame), a little behind the plate. */
+const PREVIEW_Y = 1.12;
+const PREVIEW_Z = -0.03;
 const STAND_PARTS = new Set(['Stand', 'Foot', 'StandGrip']);
 
 /**
@@ -151,6 +156,8 @@ export class HubSystem extends createSystem({}) {
   private placePos = { x: PLACE_DIAL_X, z: PLACE_DIAL_Z };
   private hoveringStand = false;
   private standMat: MeshBasicMaterial | undefined;
+  /** First-person preview over the dial while it is being turned. */
+  private preview = new PreviewScreen();
 
   init(): void {
     const dial = this.world.getSceneObject('hub-dial');
@@ -179,6 +186,12 @@ export class HubSystem extends createSystem({}) {
       const foot = dial.getObjectByName('Foot') as Mesh | undefined;
       if (foot) foot.material = this.standMat;
     }
+    this.preview.group.position.set(0, PREVIEW_Y, PREVIEW_Z);
+    dial.add(this.preview.group);
+    this.cleanupFuncs.push(() => {
+      this.preview.group.removeFromParent();
+      this.preview.dispose();
+    });
     this.haloMesh = (dial.getObjectByName('HandleHalo') as Mesh | undefined) ?? undefined;
     if (this.haloMesh) {
       this.haloMesh.material = (this.haloMesh.material as MeshBasicMaterial).clone();
@@ -693,7 +706,7 @@ export class HubSystem extends createSystem({}) {
     }
     if (this.moving) this.applyMove(s.immersive);
     if (!want) {
-      this.updatePlaceDial(s.immersive);
+      this.updatePlaceDial(s.immersive, delta);
       return;
     }
 
@@ -728,11 +741,23 @@ export class HubSystem extends createSystem({}) {
     if (this.knob) this.knob.rotation.y = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
     this.styleHandle(this.target);
 
+    // Preview: the windows at the knob's exact position, sliding with it, at full brightness.
+    if (this.stepPreview(this.dragging || this.snap !== null, delta)) {
+      for (let i = 0; i < COUNT; i++) this.layoutPreview(i);
+      this.preview.render(this.world.renderer, this.scene, viewer, this.dial);
+    }
     for (let i = 0; i < COUNT; i++) this.layout(i);
+  }
+
+  /** Fade the preview screen; true (with `viewer` set) when it should be drawn this frame. */
+  private stepPreview(active: boolean, delta: number): boolean {
+    this.world.camera.getWorldPosition(viewer);
+    return this.preview.step(active, Math.min(delta, MAX_DT), viewer);
   }
 
   private setPlaceDial(on: boolean) {
     if (this.dragging || this.moving) this.endDrag();
+    this.preview.reset();
     this.placeDial = on;
     this.dial.visible = on;
     if (on) {
@@ -744,7 +769,7 @@ export class HubSystem extends createSystem({}) {
   }
 
   /** In a place the dial has no detents: the handle follows the ray and the panorama turns with it. */
-  private updatePlaceDial(on: boolean) {
+  private updatePlaceDial(on: boolean, delta: number) {
     if (on !== this.placeDial) this.setPlaceDial(on);
     if (!on) return;
     const place = this.world.getSystem(PlaceSystem);
@@ -756,6 +781,12 @@ export class HubSystem extends createSystem({}) {
       }
     }
     if (this.knob) this.knob.rotation.y = Math.PI + (place?.userTurn ?? 0);
+    // Preview: the panorama already turned to where the dial points.
+    if (place && this.stepPreview(this.dragging, delta)) {
+      place.previewBegin();
+      this.preview.render(this.world.renderer, this.scene, viewer, this.dial);
+      place.previewEnd();
+    }
     const id = store.get().prefs.place;
     let i = 0;
     while (i < COUNT - 1 && PLACES[i].id !== id) i++;
@@ -811,12 +842,23 @@ export class HubSystem extends createSystem({}) {
   }
 
   private layout(i: number) {
-    const w = this.wins[i];
-    if (!w) return;
     // Whole slots only: a window is either standing in a slot or parked, never in between.
     const a = windowAngleDeg(i, this.view.shown);
-    const on = windowFade(a) > 0.5;
+    const k = ease(this.view.k);
+    this.placeWin(i, a, windowFade(a) > 0.5, k, a === 0 ? k : 0, true);
+  }
 
+  /** For the preview screen only: windows slide continuously with the knob, never dissolve. */
+  private layoutPreview(i: number) {
+    const a = windowAngleDeg(i, this.value);
+    const f = windowFade(a);
+    this.placeWin(i, a, f > 0.01, f, windowGlow(a), false);
+  }
+
+  /** Stand window `i` at ring angle `a` with picture level `k` and glow; `live` also restyles its label. */
+  private placeWin(i: number, a: number, on: boolean, k: number, glow: number, live: boolean) {
+    const w = this.wins[i];
+    if (!w) return;
     w.obj.visible = on;
     w.label.visible = on;
     if (!on) {
@@ -824,8 +866,6 @@ export class HubSystem extends createSystem({}) {
       w.label.position.y = PARKED_Y;
       return;
     }
-    const k = ease(this.view.k);
-    const glow = a === 0 ? k : 0;
     const yaw = -a * D2R;
     ringXZ(a, RING_R, xz);
     w.obj.position.set(xz[0], 0, xz[1]);
@@ -848,6 +888,7 @@ export class HubSystem extends createSystem({}) {
     w.floorMat.opacity = glow * 0.3;
     for (const m of w.haloMeshes) m.visible = glow > 0.01;
     w.floorGlow.visible = glow > 0.01;
+    if (!live) return;
 
     // Label opacity and chip border change in coarse steps (setting them allocates).
     const fadeStep = Math.round(k * 12);

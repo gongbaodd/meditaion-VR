@@ -159,6 +159,36 @@ export class PlaceSystem extends createSystem({}) {
     if (Math.abs(this.userYaw - this.appliedYaw) > TURN_THRESHOLD) this.turnPending = true;
   }
 
+  private pvYaw = 0;
+  private pvBg = 0;
+  private pvEnv = 0;
+
+  /**
+   * Make the scene look as it will once the current dial turn is applied (for the dial's
+   * preview screen): the panorama turned by the pending yaw, at full turn brightness.
+   * Must be paired with `previewEnd()` right after rendering.
+   */
+  previewBegin() {
+    const place = this.place;
+    this.pvYaw = this.userYaw - this.appliedYaw;
+    this.pvBg = this.scene.backgroundIntensity;
+    this.pvEnv = this.scene.environmentIntensity;
+    this.scene.backgroundRotation.y += this.pvYaw;
+    this.scene.environmentRotation.y += this.pvYaw;
+    if (place) {
+      const k = this.fade * this.level;
+      this.scene.backgroundIntensity = place.domeIntensity * k;
+      this.scene.environmentIntensity = place.iblIntensity * (0.15 + 0.85 * k);
+    }
+  }
+
+  previewEnd() {
+    this.scene.backgroundRotation.y -= this.pvYaw;
+    this.scene.environmentRotation.y -= this.pvYaw;
+    this.scene.backgroundIntensity = this.pvBg;
+    this.scene.environmentIntensity = this.pvEnv;
+  }
+
   /** Runs the release fade. Returns true if turnK changed. */
   private stepTurn(delta: number): boolean {
     if (this.turnPending) {
