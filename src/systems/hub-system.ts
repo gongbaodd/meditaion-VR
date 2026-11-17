@@ -14,7 +14,7 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import { actions, audio, publicUrl, store } from '../app.js';
-import { COUNT, type DeckSlot, mod, deckSlot, detentOffset, KNOB_DEG_PER_DETENT, type Spring, stepSpring, stepTarget, wrapPi } from '../hub/ring.js';
+import { COUNT, type Dissolve, detentOffset, ease, KNOB_DEG_PER_DETENT, mod, ringXZ, stepDissolve, stepTarget, windowAngleDeg, windowFade, wrapPi } from '../hub/ring.js';
 import { makePaneMaterial } from '../hub/window-material.js';
 import { t } from '../strings.js';
 import { PLACES } from '../state.js';
@@ -23,13 +23,16 @@ import { PlaceSystem } from './place-system.js';
 import { VRUISystem } from './vr-ui-system.js';
 
 const D2R = Math.PI / 180;
-/** The front window's name sits this far toward the player from the window, and this high. */
-const LABEL_NEAR = 0.4;
+/** Radius of the window ring and of the (slightly nearer) ring of name labels, metres. */
+const RING_R = 3;
+const LABEL_R = 2.6;
 const LABEL_Y = 0.2;
-/** Seconds the windows take to settle on a new place (critically damped, no overshoot). */
-const STEP_TIME = 0.16;
-/** Longest frame the eased step will integrate, so a hitch cannot make it jump. */
+/** Seconds the pictures take to fade out, and again to fade back in, when the place changes. */
+const FADE_TIME = 0.16;
+/** Longest frame the fade will integrate, so a hitch cannot make it jump. */
 const MAX_DT = 0.05;
+/** Frame brightness of a window that is not in front. */
+const FRAME_DIM = 0.45;
 const LABEL_SCALE = 0.1;
 const PARKED_Y = -50;
 
@@ -44,16 +47,29 @@ interface Win {
   floorGlow: Mesh;
   color: Color;
   lastGlowStep: number;
+  lastFadeStep: number;
 }
 
 /** Handle circle radius on the dial plate (matches HANDLE_R in hub-dial.scene-asset.ts), metres. */
 const HANDLE_R = 0.082;
 /** How close (metres, on the plate) a press must land to the handle to start a drag. */
 const GRAB_RADIUS = 0.06;
+/** A pinch (or trigger) with the fingertip this close to the plate centre, metres, grabs the dial directly. */
+const NEAR_R = 0.14;
+/** ...and within this far above or below the plate, metres. */
+const NEAR_H = 0.1;
+/** Closer than this to the plate centre, metres, the hand's angle is too jumpy to follow. */
+const NEAR_MIN_R = 0.015;
+/** Window clicks this soon after letting go of the dial, ms, belong to the dial's release. */
+const CLICK_GUARD_MS = 300;
+/** Where the dial stands in a place (VR, outside the hub): front-right of the mat, turned to face it. */
+const PLACE_DIAL_X = 0.34;
+const PLACE_DIAL_Z = -0.34;
+const PLACE_DIAL_YAW = Math.atan2(-PLACE_DIAL_X, -PLACE_DIAL_Z);
 const HANDLE_IDLE = 0x8a90a0;
 const HANDLE_HOVER = 0xe8eaf0;
 
-const slotTmp: DeckSlot = { x: 0, depth: 0, fade: 0, glow: 0 };
+const xz: [number, number] = [0, 0];
 const tmpQ = new Quaternion();
 const aim = new Vector3();
 const plateN = new Vector3();
@@ -65,14 +81,15 @@ const hexColor = new Color();
 const handleColor = new Color();
 
 /**
- * The VR hub: a stack of arched place windows and a dial that changes which one is in front.
+ * The VR hub: a ring of arched place windows and a dial that changes which one is in front.
  * `value` is the continuous knob position in detents; window i is dead ahead at value = i.
- * The windows do not follow the knob directly: `target` is the detent they should show and
- * `view` chases it with an eased spring, so one step is a short calm move whatever the hand does.
+ * The windows never slide. `target` is the detent they should show; when it changes, the
+ * pictures and names fade out, every window takes its new slot unseen, and they fade back in
+ * (`view`). The frames stay lit in the same five places the whole time.
  * Press the handle on the dial's rim (ray trigger or hand pinch) and drag it around the plate:
- * the handle follows where the ray crosses the plate. On release it eases to the nearest
- * detent. Thumbstick left/right steps one place; selecting
- * a side window brings it to the front; selecting the front window enters the place.
+ * the handle follows where the ray crosses the plate. Or reach out and pinch the knob itself
+ * (trigger with the controller on it): the handle follows the fingertip. On release it eases to the nearest
+ * detent. Thumbstick left/right steps one place; selecting any window enters its place.
  */
 export class HubSystem extends createSystem({}) {
   private wins: Win[] = [];
@@ -88,20 +105,28 @@ export class HubSystem extends createSystem({}) {
   private value = 0;
   /** Detent the windows are heading for (unwrapped, like `value`). */
   private target = 0;
-  /** Eased window position in detents; `x` is what the layout reads. */
-  private view: Spring = { x: 0, v: 0 };
+  /** Which detent the windows are laid out for, and how far the pictures are faded in. */
+  private view: Dissolve = { shown: 0, k: 1 };
   private snap: number | null = null;
   private lastDetent = 0;
   private shown = false;
+  /** The dial is standing in a place (VR, outside the hub) and turns the panorama. */
+  private placeDial = false;
   private ready = false;
   private dragging = false;
   private dragHand: 'left' | 'right' = 'right';
+  /** The current drag holds the dial directly (fingertip over the plate) rather than by ray. */
+  private nearDrag = false;
+  private dragEndedAt = 0;
   /** The pointer and object holding pointer capture for the current drag, so the ray stays on the dial. */
   private capture: { obj: Object3D; id: number } | null = null;
   /** Plate angle (radians, atan2(x, z) in the dial head's frame) of the ray hit last frame. */
   private lastAng = 0;
   private stickLatched = false;
   private lastWheel = 0;
+  /** Desktop mouse position in normalised device coordinates (-1..1, y up). */
+  private mouseX = 0;
+  private mouseY = 0;
 
   init(): void {
     const dial = this.world.getSceneObject('hub-dial');
@@ -161,6 +186,7 @@ export class HubSystem extends createSystem({}) {
         floorGlow,
         color,
         lastGlowStep: -1,
+        lastFadeStep: -1,
       };
       this.wins[i] = w;
 
@@ -202,9 +228,21 @@ export class HubSystem extends createSystem({}) {
     const selectEnd = (e: XRInputSourceEvent) => {
       if (this.dragging && e.inputSource.handedness === this.dragHand) this.endDrag();
     };
-    const onSession = () => xr.getSession()?.addEventListener('selectend', selectEnd);
+    // Reaching out and pinching the knob (or pulling the trigger with the controller on it):
+    // ray events never fire for that, so pick it up from the select itself.
+    const selectStart = (e: XRInputSourceEvent) => {
+      const h = e.inputSource.handedness;
+      if (h === 'left' || h === 'right') this.beginNearDrag(h);
+    };
+    const onSession = () => {
+      const session = xr.getSession();
+      session?.addEventListener('selectstart', selectStart);
+      session?.addEventListener('selectend', selectEnd);
+    };
     const offSession = () => {
-      xr.getSession()?.removeEventListener('selectend', selectEnd);
+      const session = xr.getSession();
+      session?.removeEventListener('selectstart', selectStart);
+      session?.removeEventListener('selectend', selectEnd);
       this.endDrag();
     };
     xr.addEventListener('sessionstart', onSession);
@@ -213,6 +251,7 @@ export class HubSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => {
       xr.removeEventListener('sessionstart', onSession);
       xr.removeEventListener('sessionend', offSession);
+      xr.getSession()?.removeEventListener('selectstart', selectStart);
       xr.getSession()?.removeEventListener('selectend', selectEnd);
     });
 
@@ -220,10 +259,14 @@ export class HubSystem extends createSystem({}) {
     actions.stepHub = (d) => this.step(d);
     actions.enterHub = () => this.enter(this.frontIndex());
 
-    // Desktop: drag the dial sideways, arrow keys or mouse wheel step the ring.
+    // Desktop: drag the handle around the plate (it follows the mouse like the VR ray);
+    // arrow keys or mouse wheel step the ring.
     const canvas = this.world.renderer.domElement;
     const move = (e: PointerEvent) => {
-      if (this.dragging && !store.get().immersive) this.value += e.movementX / 140;
+      const r = canvas.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      this.mouseX = ((e.clientX - r.left) / r.width) * 2 - 1;
+      this.mouseY = -((e.clientY - r.top) / r.height) * 2 + 1;
     };
     const upW = () => this.endDrag();
     const wheel = (e: WheelEvent) => {
@@ -233,11 +276,14 @@ export class HubSystem extends createSystem({}) {
       this.lastWheel = now;
       this.step(e.deltaY > 0 ? 1 : -1);
     };
-    window.addEventListener('pointermove', move);
+    // Capture phase so the position is current before the dial's pointerdown handler runs.
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerdown', move, true);
     window.addEventListener('pointerup', upW);
     canvas.addEventListener('wheel', wheel, { passive: true });
     this.cleanupFuncs.push(() => {
-      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerdown', move, true);
       window.removeEventListener('pointerup', upW);
       canvas.removeEventListener('wheel', wheel);
     });
@@ -248,8 +294,8 @@ export class HubSystem extends createSystem({}) {
     );
     this.value = Math.max(0, PLACES.findIndex((p) => p.id === store.get().prefs.place));
     this.target = Math.round(this.value);
-    this.view.x = this.target;
-    this.view.v = 0;
+    this.view.shown = this.target;
+    this.view.k = 1;
     this.lastDetent = this.target;
     this.ready = true;
     this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
@@ -279,8 +325,8 @@ export class HubSystem extends createSystem({}) {
     this.value = Math.round(this.value) + detentOffset(Math.max(0, i), Math.round(this.value));
     this.snap = this.value;
     this.target = this.value;
-    this.view.x = this.value;
-    this.view.v = 0;
+    this.view.shown = this.value;
+    this.view.k = 1;
     this.lastDetent = this.value;
     this.world.getSystem(PlaceSystem)?.setLevel(0, 0.5);
     this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
@@ -290,32 +336,46 @@ export class HubSystem extends createSystem({}) {
   private enter(i: number) {
     const place = PLACES[i];
     store.setPrefs({ place: place.id, ambient: place.ambient });
+    // The hub silenced everything; restart the bed even if the pref didn't change.
+    void audio.setAmbient(place.ambient);
     this.world.getSystem(PlaceSystem)?.setLevel(1, 1.5);
     store.set({ mode: 'menu' });
   }
 
   private onWindowClick(i: number) {
-    if (!this.shown || this.dragging) return;
+    if (!this.shown || this.dragging || performance.now() - this.dragEndedAt < CLICK_GUARD_MS) return;
     void audio.unlock();
-    if (Math.abs(detentOffset(i, this.view.x)) < 0.5) {
-      this.enter(i);
-    } else {
-      this.snap = this.target + detentOffset(i, this.target);
-    }
+    this.enter(i);
   }
 
   // ---- dial ----------------------------------------------------------------------------
 
+  /** Start a direct-hand drag if `hand`'s fingertip is on the dial. */
+  private beginNearDrag(hand: 'left' | 'right') {
+    if (this.dragging || (!this.shown && !this.placeDial)) return;
+    const ang = this.tipPlateAngle(hand);
+    if (Number.isNaN(ang) || Math.abs(plateHit.y) > NEAR_H || Math.hypot(plateHit.x, plateHit.z) > NEAR_R) return;
+    void audio.unlock();
+    this.dragHand = hand;
+    this.nearDrag = true;
+    this.dragging = true;
+    this.snap = null;
+    this.lastAng = ang;
+  }
+
   private beginDrag(e: unknown) {
-    if (!this.shown) return;
+    if (this.dragging || (!this.shown && !this.placeDial)) return;
     void audio.unlock();
     if (!store.get().immersive) {
+      const ang = this.mousePlateAngle();
+      if (Number.isNaN(ang)) return;
       this.dragging = true;
       this.snap = null;
+      this.lastAng = ang;
       return;
     }
     // Pick the hand whose ray lands closest to the handle; ignore presses elsewhere on the dial.
-    const a0 = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
+    const a0 = this.knob ? this.knob.rotation.y : Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
     const hx = Math.sin(a0) * HANDLE_R;
     const hz = Math.cos(a0) * HANDLE_R;
     let best: 'left' | 'right' | null = null;
@@ -333,6 +393,7 @@ export class HubSystem extends createSystem({}) {
     }
     if (!best) return;
     this.dragHand = best;
+    this.nearDrag = false;
     this.dragging = true;
     this.snap = null;
     this.lastAng = bestAng;
@@ -353,7 +414,9 @@ export class HubSystem extends createSystem({}) {
     }
     if (!this.dragging) return;
     this.dragging = false;
-    this.snap = this.target;
+    this.nearDrag = false;
+    this.dragEndedAt = performance.now();
+    if (this.shown) this.snap = this.target;
   }
 
   /**
@@ -367,6 +430,37 @@ export class HubSystem extends createSystem({}) {
     r.getWorldPosition(raySrc);
     r.getWorldQuaternion(tmpQ);
     aim.set(0, 0, -1).applyQuaternion(tmpQ);
+    return this.rayPlateAngle();
+  }
+
+  /**
+   * Where a hand's fingertip (controller: its tip) sits over the dial plate, as an angle like
+   * `plateAngle`; leaves the head-local point in `plateHit`. NaN right over the centre.
+   */
+  private tipPlateAngle(hand: 'left' | 'right'): number {
+    const tip = this.player.indexTipSpaces[hand];
+    if (!tip) return NaN;
+    tip.getWorldPosition(plateHit);
+    this.head.worldToLocal(plateHit);
+    if (Math.hypot(plateHit.x, plateHit.z) < NEAR_MIN_R) return NaN;
+    return Math.atan2(plateHit.x, plateHit.z);
+  }
+
+  /** Plate angle of the hand holding the current VR drag. */
+  private dragAngle(): number {
+    return this.nearDrag ? this.tipPlateAngle(this.dragHand) : this.plateAngle(this.dragHand);
+  }
+
+  /** Desktop: same as `plateAngle`, for the camera ray through the mouse. */
+  private mousePlateAngle(): number {
+    const cam = this.world.camera;
+    cam.getWorldPosition(raySrc);
+    aim.set(this.mouseX, this.mouseY, 0.5).unproject(cam).sub(raySrc).normalize();
+    return this.rayPlateAngle();
+  }
+
+  /** Intersect the ray in `raySrc`/`aim` with the dial plate; see `plateAngle`. */
+  private rayPlateAngle(): number {
     this.head.getWorldPosition(plateCenter);
     this.head.getWorldQuaternion(tmpQ);
     plateN.set(0, 1, 0).applyQuaternion(tmpQ);
@@ -402,6 +496,7 @@ export class HubSystem extends createSystem({}) {
     if (!this.ready) return;
     const s = store.get();
     const want = s.mode === 'hub';
+    if (want && this.placeDial) this.setPlaceDial(false);
     if (want !== this.shown) {
       this.setShown(want);
       if (want) {
@@ -410,16 +505,18 @@ export class HubSystem extends createSystem({}) {
         this.floor.visible = true;
         this.title.visible = true;
         this.dial.position.set(0, 0, -0.45);
+        this.dial.rotation.y = 0;
         this.title.position.set(0, 2.0, -3.2);
       }
     }
-    if (!want) return;
+    if (!want) {
+      this.updatePlaceDial(s.immersive);
+      return;
+    }
 
-    if (this.dragging && !s.immersive) {
-      // desktop: value is driven by pointer movement
-    } else if (this.dragging) {
-      // The handle follows the ray: turning the plate angle by +d lowers the dial value by d.
-      const ang = this.plateAngle(this.dragHand);
+    if (this.dragging) {
+      // The handle follows the ray (desktop: the mouse): turning the plate angle by +d lowers the dial value by d.
+      const ang = s.immersive ? this.dragAngle() : this.mousePlateAngle();
       if (!Number.isNaN(ang)) {
         this.value -= wrapPi(ang - this.lastAng) / (KNOB_DEG_PER_DETENT * D2R);
         this.lastAng = ang;
@@ -435,7 +532,7 @@ export class HubSystem extends createSystem({}) {
       }
     }
 
-    // The windows only change place once the knob is clearly past halfway, then ease there.
+    // The windows only change place once the knob is clearly past halfway, then dissolve there.
     if (this.dragging) this.target = stepTarget(this.value, this.target);
     else if (this.snap !== null) this.target = this.snap;
     if (this.target !== this.lastDetent) {
@@ -443,12 +540,44 @@ export class HubSystem extends createSystem({}) {
       audio.tick();
       this.world.getSystem(VRUISystem)?.setHubPlace(this.frontIndex());
     }
-    stepSpring(this.view, this.target, STEP_TIME, Math.min(delta, MAX_DT));
+    stepDissolve(this.view, this.target, FADE_TIME, Math.min(delta, MAX_DT));
 
     if (this.knob) this.knob.rotation.y = Math.PI - this.value * KNOB_DEG_PER_DETENT * D2R;
     this.styleHandle(this.target);
 
     for (let i = 0; i < COUNT; i++) this.layout(i);
+  }
+
+  private setPlaceDial(on: boolean) {
+    if (this.dragging) this.endDrag();
+    this.placeDial = on;
+    this.dial.visible = on;
+    if (on) {
+      this.dial.position.set(PLACE_DIAL_X, 0, PLACE_DIAL_Z);
+      this.dial.rotation.y = PLACE_DIAL_YAW;
+    } else {
+      this.dial.position.y = PARKED_Y;
+      this.dial.rotation.y = 0;
+    }
+  }
+
+  /** In a place the dial has no detents: the handle follows the ray and the panorama turns with it. */
+  private updatePlaceDial(on: boolean) {
+    if (on !== this.placeDial) this.setPlaceDial(on);
+    if (!on) return;
+    const place = this.world.getSystem(PlaceSystem);
+    if (this.dragging && place) {
+      const ang = this.dragAngle();
+      if (!Number.isNaN(ang)) {
+        place.turn(wrapPi(ang - this.lastAng));
+        this.lastAng = ang;
+      }
+    }
+    if (this.knob) this.knob.rotation.y = Math.PI + (place?.userTurn ?? 0);
+    const id = store.get().prefs.place;
+    let i = 0;
+    while (i < COUNT - 1 && PLACES[i].id !== id) i++;
+    this.styleHandle(PLACES[i].id === id ? i : 0);
   }
 
   /** Grey when idle, brighter when pointed at, the front place's colour (with a halo) while held. */
@@ -498,46 +627,48 @@ export class HubSystem extends createSystem({}) {
   private layout(i: number) {
     const w = this.wins[i];
     if (!w) return;
-    const { x, depth, fade, glow } = deckSlot(detentOffset(i, this.view.x), slotTmp);
-    const on = fade > 0.02;
+    // Whole slots only: a window is either standing in a slot or parked, never in between.
+    const a = windowAngleDeg(i, this.view.shown);
+    const on = windowFade(a) > 0.5;
 
     w.obj.visible = on;
-    // Only the front window shows its name; it grows in as the window arrives.
-    const showLabel = glow > 0.05;
-    w.label.visible = on && showLabel;
+    w.label.visible = on;
     if (!on) {
       w.obj.position.y = PARKED_Y;
       w.label.position.y = PARKED_Y;
       return;
     }
-    // Every window faces the player.
-    const yaw = -Math.atan2(x, depth);
-    w.obj.position.set(x, 0, -depth);
+    const k = ease(this.view.k);
+    const glow = a === 0 ? k : 0;
+    const yaw = -a * D2R;
+    ringXZ(a, RING_R, xz);
+    w.obj.position.set(xz[0], 0, xz[1]);
     w.obj.rotation.y = yaw;
-    // Don't let a nearly-invisible window catch rays.
-    if (fade < 0.3) w.obj.position.y = PARKED_Y;
 
-    if (showLabel) {
-      w.label.position.set(x, LABEL_Y, -depth + LABEL_NEAR);
-      w.label.rotation.set(-0.35, yaw, 0, 'YXZ');
-      w.label.scale.setScalar(LABEL_SCALE * glow);
-    } else {
-      w.label.position.y = PARKED_Y;
-    }
+    ringXZ(a, LABEL_R, xz);
+    w.label.position.set(xz[0], LABEL_Y, xz[1]);
+    w.label.rotation.set(-0.35, yaw, 0, 'YXZ');
+    w.label.scale.setScalar(LABEL_SCALE);
 
     if (w.paneMat) {
       w.paneMat.uniforms.uGlow.value = glow;
-      w.paneMat.uniforms.uFade.value = fade;
+      w.paneMat.uniforms.uFade.value = k;
     }
+    // The frame does not fade with the picture: it is the still thing the eye rests on.
     w.outlineMat.color.set(0xe8eaf0).lerp(w.color, glow);
-    w.outlineMat.opacity = fade * (0.45 + 0.55 * glow);
+    w.outlineMat.opacity = FRAME_DIM + (1 - FRAME_DIM) * glow;
     w.outlineMat.transparent = true;
-    w.glowMat.opacity = fade * glow * 0.09;
-    w.floorMat.opacity = fade * glow * 0.3;
+    w.glowMat.opacity = glow * 0.09;
+    w.floorMat.opacity = glow * 0.3;
     for (const m of w.haloMeshes) m.visible = glow > 0.01;
     w.floorGlow.visible = glow > 0.01;
 
-    // Label chip border follows the glow (update in coarse steps, it allocates a string).
+    // Label opacity and chip border change in coarse steps (setting them allocates).
+    const fadeStep = Math.round(k * 12);
+    if (fadeStep !== w.lastFadeStep) {
+      w.lastFadeStep = fadeStep;
+      w.label.document.rootElement.setProperties({ opacity: fadeStep / 12 } as never);
+    }
     const step = Math.round(glow * 16);
     if (step !== w.lastGlowStep) {
       w.lastGlowStep = step;

@@ -40,7 +40,7 @@ export const actions = {
   pause: () => {},
   resume: () => {},
   end: () => {},
-  backToMenu: () => {},
+  backToHub: () => {},
   openHub: () => {},
   /** Hub: turn the ring one place (hand menu stepper). */
   stepHub: (_d: 1 | -1) => {},

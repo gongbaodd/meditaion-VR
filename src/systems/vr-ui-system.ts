@@ -142,7 +142,7 @@ export class VRUISystem extends createSystem({}) {
     this.on('vr-hand-menu', 'hm-place', () => actions.openHub());
     this.on('vr-hand-menu', 'hm-exit', () => actions.exitVR());
     this.on('vr-summary', 'again', () => actions.begin({ vr: true }));
-    this.on('vr-summary', 'to-menu', () => actions.backToMenu());
+    this.on('vr-summary', 'to-hub', () => actions.backToHub());
   }
 
   /** Static labels. */
@@ -169,7 +169,7 @@ export class VRUISystem extends createSystem({}) {
     set('vr-pause', 'pause-sign', t('ui.pauseSign'));
     set('vr-summary', 'sum-title', t('ui.complete'));
     set('vr-summary', 'again', t('ui.again'));
-    set('vr-summary', 'to-menu', t('ui.menu'));
+    set('vr-summary', 'to-hub', t('ui.backToHub'));
   }
 
   private render(s: AppState, prev: AppState | null) {

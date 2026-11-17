@@ -13,6 +13,10 @@ import { PLACES, type Place } from '../state.js';
 
 const FADE_OUT = 0.7;
 const FADE_IN = 1.6;
+/** Yaw drift of the surroundings during a session: a full turn takes 20 minutes. */
+const DRIFT_SPEED = (0.3 * Math.PI) / 180;
+/** Seconds to ease the drift in and out, so it never visibly starts or stops. */
+const DRIFT_EASE = 10;
 
 /**
  * With no rotation, looking down −Z shows the centre of the equirect (u = 0.5), and a
@@ -42,6 +46,12 @@ export class PlaceSystem extends createSystem({}) {
   private place: Place | null = null;
   private token = 0;
   private hdLoaded = new Set<string>();
+  /** Yaw (radians) the surroundings have drifted since the session began. */
+  private drift = 0;
+  private driftSpeed = 0;
+  private driftTarget = 0;
+  /** Yaw (radians) the user has turned the surroundings with the dial. */
+  private userYaw = 0;
 
   init(): void {
     const root = this.world.activeLevel.value;
@@ -52,6 +62,11 @@ export class PlaceSystem extends createSystem({}) {
       store.subscribe((s, prev) => {
         if (s.prefs.place !== prev.prefs.place) this.show(s.prefs.place);
         if (s.immersive && !prev.immersive) this.maybeUpgrade();
+        if (s.mode !== prev.mode) {
+          // A new session starts facing the place's focal point again; resuming carries on.
+          if (s.mode === 'running' && prev.mode !== 'paused') this.resetDrift();
+          this.driftTarget = s.mode === 'running' ? DRIFT_SPEED : 0;
+        }
       }),
       this.world.visibilityState.subscribe((v) => {
         if (v !== VisibilityState.NonImmersive) this.maybeUpgrade();
@@ -94,6 +109,9 @@ export class PlaceSystem extends createSystem({}) {
     bg.colorSpace = SRGBColorSpace;
 
     this.place = place;
+    // A newly shown place always faces its focal point.
+    this.drift = 0;
+    this.userYaw = 0;
     this.applySources(bgUrl, iblUrl, place);
     this.fadeTarget = 1;
     this.fadeRate = 1 / FADE_IN;
@@ -104,8 +122,50 @@ export class PlaceSystem extends createSystem({}) {
   /** Dev-only: extra yaw (degrees) for calibrating focusU with the [ and ] keys. */
   private devYaw = 0;
 
+  private baseYaw(place: Place): number {
+    return yawForFocus(place.focusU) + (this.devYaw * Math.PI) / 180 + this.userYaw;
+  }
+
+  /** How far (radians) the user has turned the surroundings with the dial. */
+  get userTurn(): number {
+    return this.userYaw;
+  }
+
+  /** Turn the surroundings by `angle` radians on the user's request (the dial). */
+  turn(angle: number) {
+    if (angle === 0) return;
+    this.userYaw += angle;
+    this.applyYawDelta(angle);
+  }
+
+  private resetDrift() {
+    if (this.drift === 0) return;
+    this.rotateBy(-this.drift);
+    this.driftSpeed = 0;
+  }
+
+  /**
+   * Turn the dome and its lighting together. The component holds the authored yaw and the
+   * scene rotations also carry the engine's recenter offset, so both are nudged by the
+   * same amount rather than rewritten.
+   */
+  private rotateBy(angle: number) {
+    this.drift += angle;
+    this.applyYawDelta(angle);
+  }
+
+  private applyYawDelta(angle: number) {
+    const place = this.place;
+    if (!place || !this.root.hasComponent(DomeTexture)) return;
+    const yaw = this.baseYaw(place) + this.drift;
+    this.root.getVectorView(DomeTexture, 'rotation')[1] = yaw;
+    this.root.getVectorView(IBLTexture, 'rotation')[1] = yaw;
+    this.scene.backgroundRotation.y += angle;
+    this.scene.environmentRotation.y += angle;
+  }
+
   private applySources(bgUrl: string, iblUrl: string, place: Place) {
-    const yaw = yawForFocus(place.focusU) + (this.devYaw * Math.PI) / 180;
+    const yaw = this.baseYaw(place) + this.drift;
     const r = this.root;
     if (!r.hasComponent(DomeTexture)) {
       r.addComponent(DomeTexture, { src: bgUrl, intensity: 0, blurriness: 0 });
@@ -166,7 +226,7 @@ export class PlaceSystem extends createSystem({}) {
       const step = kb?.getKeyDown('BracketRight') ? 30 : kb?.getKeyDown('BracketLeft') ? -30 : 0;
       if (step) {
         this.devYaw += step;
-        const yaw = yawForFocus(this.place.focusU) + (this.devYaw * Math.PI) / 180;
+        const yaw = this.baseYaw(this.place) + this.drift;
         this.root.getVectorView(DomeTexture, 'rotation').set([0, yaw, 0]);
         this.root.getVectorView(IBLTexture, 'rotation').set([0, yaw, 0]);
         this.root.setValue(DomeTexture, '_needsUpdate', true);
@@ -174,6 +234,14 @@ export class PlaceSystem extends createSystem({}) {
         console.info(`[place] devYaw=${this.devYaw}° total=${((yaw * 180) / Math.PI).toFixed(1)}°`);
       }
     }
+    if (this.driftSpeed !== this.driftTarget) {
+      const step = (delta * DRIFT_SPEED) / DRIFT_EASE;
+      this.driftSpeed =
+        this.driftSpeed < this.driftTarget
+          ? Math.min(this.driftTarget, this.driftSpeed + step)
+          : Math.max(this.driftTarget, this.driftSpeed - step);
+    }
+    if (this.driftSpeed > 0) this.rotateBy(this.driftSpeed * delta);
     let changed = false;
     if (this.fade !== this.fadeTarget) {
       const step = delta * this.fadeRate;

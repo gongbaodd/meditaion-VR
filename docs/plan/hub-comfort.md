@@ -2,6 +2,11 @@
 
 _Written 2026-11-16. Status: **plan, not started.** Follows `hub-scene.md` (implemented)._
 
+> **Update 2026-11-16:** the deck (option B) was tried and dropped. The hub is back on the ring
+> layout, but the windows no longer slide: on each dial step the pictures and names fade out,
+> the windows take their new slots unseen, and they fade back in (close to option C). See
+> `stepDissolve` in `src/hub/ring.ts` and `layout()` in `src/systems/hub-system.ts`.
+
 Turning the dial in the hub makes people dizzy. This plan replaces the orbiting ring with a
 **deck**: the windows stand like a spread stack of cards straight ahead, and turning the dial
 brings the next one forward with a short eased step.

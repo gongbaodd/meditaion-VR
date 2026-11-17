@@ -73,6 +73,6 @@
   <span id="sum-stats" class="stats">1 sessions · 5 min total · 1-day streak</span>
   <div class="actions">
     <span id="again" class="primary">Sit again</span>
-    <span id="to-menu" class="ghost">Menu</span>
+    <span id="to-hub" class="ghost">Back to hub</span>
   </div>
 </Panel>

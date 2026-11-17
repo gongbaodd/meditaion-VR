@@ -1,18 +1,21 @@
 /**
- * Pure maths for the hub's window deck. No engine imports so it is unit-testable.
+ * Pure maths for the hub's window ring. No engine imports so it is unit-testable.
  *
- * The windows stand in a shallow stack straight ahead: the front one is at slot 0, its
- * neighbours peek out left and right (slot ±1) and sit slightly behind it, the rest are hidden.
- * Turning the dial moves the stack by one slot at a time (see `stepTarget` and `stepSpring`).
+ * The windows stand on a circle around the player, one every STEP_DEG. They never slide:
+ * when the dial moves on to another place, the pictures fade out, every window takes its new
+ * slot while nothing is showing, and the pictures fade back in (see `stepDissolve`).
  */
 
 export const COUNT = 6;
 /** Dial (knob) degrees per detent: one full turn = all six places. */
 export const KNOB_DEG_PER_DETENT = 360 / COUNT;
 
-/** Slot positions by distance from the front (0, 1, 2, 3 slots away), metres. */
-const SLOT_X = [0, 0.8, 1.2, 0];
-const SLOT_DEPTH = [3, 3.5, 4, 4.5];
+/** Degrees between neighbouring windows on the ring. */
+export const STEP_DEG = 36;
+const HALF_RANGE = (COUNT * STEP_DEG) / 2;
+/** Windows are fully visible inside this angle and hidden beyond FADE_END. */
+const FADE_START = 75;
+const FADE_END = 105;
 
 export const mod = (a: number, n = COUNT) => ((a % n) + n) % n;
 
@@ -30,27 +33,30 @@ export function detentOffset(index: number, value: number): number {
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
-export interface DeckSlot {
-  /** Metres to the right of straight ahead. */
-  x: number;
-  /** Metres in front of the player (positive; the scene z is −depth). */
-  depth: number;
-  /** 0..1 visibility. */
-  fade: number;
-  /** 0..1 glow: 1 for the front window, 0 once it is a full slot away. */
-  glow: number;
+/** Angle in degrees of window `index` from straight ahead (positive = to the right). */
+export function windowAngleDeg(index: number, value: number): number {
+  const a = detentOffset(index, value) * STEP_DEG;
+  return Math.max(-HALF_RANGE, Math.min(HALF_RANGE, a));
 }
 
-/** Fill `out` with where a window sits when it is `offset` slots from the front (−3..3). */
-export function deckSlot(offset: number, out: DeckSlot): DeckSlot {
-  const a = Math.min(3, Math.abs(offset));
-  const k = Math.min(2, Math.floor(a));
-  const f = a - k;
-  const sign = offset < 0 ? -1 : 1;
-  out.x = sign * (SLOT_X[k] + (SLOT_X[k + 1] - SLOT_X[k]) * f);
-  out.depth = SLOT_DEPTH[k] + (SLOT_DEPTH[k + 1] - SLOT_DEPTH[k]) * f;
-  out.fade = a <= 1 ? 1 : a >= 2 ? 0 : 1 - smooth(a - 1);
-  out.glow = smooth(Math.max(0, 1 - a));
+/** 0..1 visibility of a window at `angleDeg`. */
+export function windowFade(angleDeg: number): number {
+  const a = Math.abs(angleDeg);
+  if (a <= FADE_START) return 1;
+  if (a >= FADE_END) return 0;
+  return 1 - smooth((a - FADE_START) / (FADE_END - FADE_START));
+}
+
+/** 0..1 glow: 1 when the window is dead ahead, 0 at one full step away. */
+export function windowGlow(angleDeg: number): number {
+  return smooth(Math.max(0, 1 - Math.abs(angleDeg) / STEP_DEG));
+}
+
+/** Position on the ring (x, z) for an angle, radius r, front = −Z. Fills and returns `out`. */
+export function ringXZ(angleDeg: number, r: number, out: [number, number]): [number, number] {
+  const a = (angleDeg * Math.PI) / 180;
+  out[0] = Math.sin(a) * r;
+  out[1] = -Math.cos(a) * r;
   return out;
 }
 
@@ -63,30 +69,34 @@ export function stepTarget(value: number, target: number): number {
   return Math.abs(value - target) > 0.6 ? Math.round(value) : target;
 }
 
-export interface Spring {
-  x: number;
-  v: number;
+export interface Dissolve {
+  /** Detent the windows are laid out for right now (unwrapped, whole number). */
+  shown: number;
+  /** 0..1 raw fade level: 1 = pictures fully shown, 0 = dark. */
+  k: number;
 }
 
 /**
- * Critically damped chase of `target` (no overshoot): starts slowly, speeds up, slows into place.
- * `smoothTime` is roughly the time to cover most of the distance. Mutates `s`, allocates nothing.
+ * Fade out, switch, fade in. While `s.shown` differs from `target` the level drops; at zero
+ * the layout jumps to `target` unseen, then the level rises again. Spinning through several
+ * places keeps it dark until the dial rests. Mutates `s`, allocates nothing.
  */
-export function stepSpring(s: Spring, target: number, smoothTime: number, dt: number): void {
+export function stepDissolve(s: Dissolve, target: number, fadeTime: number, dt: number): void {
   if (dt <= 0) return;
-  const omega = 2 / smoothTime;
-  const x = omega * dt;
-  const decay = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
-  const change = s.x - target;
-  const temp = (s.v + omega * change) * dt;
-  s.v = (s.v - omega * temp) * decay;
-  s.x = target + (change + temp) * decay;
-  // Never run past the target.
-  if (change > 0 === s.x < target) {
-    s.x = target;
-    s.v = 0;
+  const step = dt / fadeTime;
+  if (s.shown !== target) {
+    s.k -= step;
+    if (s.k <= 0) {
+      s.k = 0;
+      s.shown = target;
+    }
+  } else if (s.k < 1) {
+    s.k = Math.min(1, s.k + step);
   }
 }
+
+/** Ease for a raw 0..1 fade level. */
+export const ease = smooth;
 
 /** Wrap an angle in radians into (−π, π]. */
 export function wrapPi(a: number): number {

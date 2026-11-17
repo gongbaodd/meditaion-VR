@@ -16,6 +16,7 @@ export class SessionSystem extends createSystem({}) {
   private runner: SessionRunner | null = null;
   private cueTimer = 0;
   private lastRemaining = -1;
+  private anchorTimer: ReturnType<typeof setTimeout> | undefined;
 
   private get place() {
     return this.world.getSystem(PlaceSystem)!;
@@ -29,7 +30,7 @@ export class SessionSystem extends createSystem({}) {
     actions.pause = () => this.pause();
     actions.resume = () => this.resume();
     actions.end = () => this.runner?.stop();
-    actions.backToMenu = () => this.backToMenu();
+    actions.backToHub = () => this.backToHub();
     actions.exitVR = () => this.world.exitXR();
 
     this.cleanupFuncs.push(
@@ -37,6 +38,10 @@ export class SessionSystem extends createSystem({}) {
         store.set({ immersive: v !== VisibilityState.NonImmersive });
         // Headset taken off / system menu opened / left VR: hold the session.
         if (v !== VisibilityState.Visible && store.get().mode === 'running') this.pause();
+      }),
+      // Every way back to the hub (back button, change place, entering VR) lands here.
+      store.subscribe((s, prev) => {
+        if (s.mode === 'hub' && prev.mode !== 'hub') this.teardown();
       }),
     );
   }
@@ -55,7 +60,7 @@ export class SessionSystem extends createSystem({}) {
     this.place.setLevel(0.15, 0);
     this.orb.reset();
     // Wait a beat so the headset pose is valid before anchoring the orb.
-    setTimeout(() => this.orb.anchor(), vr ? 600 : 0);
+    this.anchorTimer = setTimeout(() => this.orb.anchor(), vr ? 600 : 0);
     store.set({ mode: 'running', cue: '', remaining: session.duration });
     this.runner.start();
   }
@@ -76,16 +81,21 @@ export class SessionSystem extends createSystem({}) {
     store.set({ mode: 'running' });
   }
 
-  private backToMenu() {
-    if (this.runner && this.runner.state !== 'finished') {
-      const r = this.runner;
-      this.runner = null; // drop without recording
-      r.stop();
-    }
+  private backToHub() {
+    actions.openHub(); // sets mode 'hub' → teardown()
+  }
+
+  /** Back in the hub: drop any session (unrecorded) and silence every sound. */
+  private teardown() {
+    const r = this.runner;
+    this.runner = null; // drop without recording
+    if (r && r.state !== 'finished') r.stop();
+    clearTimeout(this.anchorTimer);
+    this.cueTimer = 0;
+    this.lastRemaining = -1;
     this.orb.reset();
-    this.place.setLevel(1, 1.5);
-    audio.fadeMaster(1, 1);
-    store.set({ mode: 'menu', cue: '' });
+    audio.stopAll();
+    store.set({ cue: '', remaining: 0 });
   }
 
   private onCue(c: Cue) {
@@ -116,7 +126,7 @@ export class SessionSystem extends createSystem({}) {
 
   private finish() {
     const r = this.runner;
-    if (!r) return; // backToMenu dropped it
+    if (!r) return; // backToHub dropped it
     // Only sits of a minute or more count towards history.
     const sat = Math.round(r.elapsed / 60);
     if (r.elapsed >= 60) {

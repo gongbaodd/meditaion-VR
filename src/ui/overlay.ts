@@ -72,7 +72,7 @@ export function mountOverlay() {
   $('resume').addEventListener('click', () => actions.resume());
   $('end').addEventListener('click', () => actions.end());
   $('again').addEventListener('click', () => actions.begin({ vr: false }));
-  $('to-menu').addEventListener('click', () => actions.backToMenu());
+  $('to-hub').addEventListener('click', () => actions.backToHub());
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       const m = store.get().mode;

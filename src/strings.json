@@ -15,7 +15,7 @@
   "ui.resume": "Resume",
   "ui.end": "End session",
   "ui.again": "Sit again",
-  "ui.menu": "Menu",
+  "ui.backToHub": "Back to hub",
   "ui.exitVR": "Exit VR",
   "ui.loading": "Loading place…",
   "ui.paused": "Paused",

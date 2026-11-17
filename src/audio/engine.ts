@@ -28,6 +28,10 @@ export class AudioEngine {
   private master!: GainNode;
   private ambientBus!: GainNode;
   private bellBus!: GainNode;
+  private bellDry!: GainNode;
+  private bellReverb!: ConvolverNode;
+  /** Bumped by stopAll() so bells still loading don't play afterwards. */
+  private gen = 0;
   private bed: Bed | null = null;
   private bedId: AmbientId = 'none';
   private wantedBed: AmbientId = 'none';
@@ -83,6 +87,8 @@ export class AudioEngine {
       reverb.buffer = impulseResponse(ctx);
       const wet = ctx.createGain();
       wet.gain.value = 0.35;
+      this.bellDry = dry;
+      this.bellReverb = reverb;
       this.bellBus.connect(dry).connect(this.master);
       this.bellBus.connect(reverb).connect(wet).connect(this.master);
 
@@ -154,7 +160,9 @@ export class AudioEngine {
     const ctx = this.ctx;
     if (!ctx || ctx.state !== 'running') return;
     const rec = this.manifest.bells?.[id];
+    const gen = this.gen;
     const buffer = rec ? await this.loadBuffer(rec.file) : null;
+    if (gen !== this.gen) return; // stopAll() while loading
     const spacing = bellSpacing(id);
     const t0 = ctx.currentTime + 0.05 + delay;
     for (let i = 0; i < count; i++) {
@@ -182,6 +190,40 @@ export class AudioEngine {
   setBellVolume(v: number) {
     this.bellLevel = v;
     if (this.ctx) this.bellBus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
+  }
+
+  /**
+   * Silence everything now: drop the ambient bed and cut off any bells already
+   * scheduled. Bells and the old bed hang off buses that get swapped out, so
+   * their nodes die with them. The dial tick still works (it goes to master).
+   */
+  stopAll() {
+    this.gen++;
+    this.wantedBed = 'none';
+    this.bedId = 'none';
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const old = this.bed;
+    this.bed = null;
+    if (old) {
+      old.stop(now + 0.05);
+      old.output.disconnect();
+    }
+    this.ambientBus.disconnect();
+    this.ambientBus = ctx.createGain();
+    this.ambientBus.gain.value = this.ambientLevel;
+    this.ambientBus.connect(this.master);
+
+    // Bell bus feeds a dry gain and a reverb send; rewire the new bus to both.
+    this.bellBus.disconnect();
+    this.bellBus = ctx.createGain();
+    this.bellBus.gain.value = this.bellLevel;
+    this.bellBus.connect(this.bellDry);
+    this.bellBus.connect(this.bellReverb);
+
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setValueAtTime(1, now);
   }
 
   /** Fade everything (used for pause / end of session). */
